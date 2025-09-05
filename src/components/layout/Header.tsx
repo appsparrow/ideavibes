@@ -17,6 +17,7 @@ const Header = () => {
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/ideas', label: 'Ideas', icon: TrendingUp },
     { href: '/submit-idea', label: 'Submit', icon: Plus },
+    { href: '/users', label: 'Users', icon: User },
   ];
 
   return (

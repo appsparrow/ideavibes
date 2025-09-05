@@ -53,6 +53,45 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          document_type: string
+          file_path: string | null
+          id: string
+          idea_id: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          document_type: string
+          file_path?: string | null
+          id?: string
+          idea_id: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          document_type?: string
+          file_path?: string | null
+          id?: string
+          idea_id?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       evaluations: {
         Row: {
           ai_suggestion: Json | null
@@ -295,6 +334,30 @@ export type Database = {
           },
         ]
       }
+      user_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          id: string
+          idea_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          id?: string
+          idea_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          id?: string
+          idea_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       votes: {
         Row: {
           created_at: string | null
@@ -334,12 +397,49 @@ export type Database = {
           },
         ]
       }
+      workflow_transitions: {
+        Row: {
+          changed_by: string
+          created_at: string
+          from_status: string | null
+          id: string
+          idea_id: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          idea_id: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          idea_id?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      update_idea_status: {
+        Args: { p_idea_id: string; p_new_status: string; p_reason?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       idea_sector: "healthcare" | "real_estate" | "other"

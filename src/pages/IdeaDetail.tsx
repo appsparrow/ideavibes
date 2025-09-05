@@ -20,9 +20,12 @@ import {
   Calendar,
   Target,
   DollarSign,
-  Sparkles
+  Sparkles,
+  Edit
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import DocumentManager from '@/components/DocumentManager';
+import WorkflowManager from '@/components/WorkflowManager';
 
 interface IdeaData {
   id: string;
@@ -84,6 +87,7 @@ const IdeaDetail = () => {
   const [userEvaluation, setUserEvaluation] = useState<Partial<Evaluation>>({});
   const [userInterest, setUserInterest] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [isEditingEvaluation, setIsEditingEvaluation] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -263,6 +267,7 @@ const IdeaDetail = () => {
         });
 
       fetchIdeaData(); // Refresh data
+      setIsEditingEvaluation(false);
       toast({
         title: "Evaluation saved",
         description: "Your evaluation has been recorded.",
@@ -555,9 +560,19 @@ const IdeaDetail = () => {
                         </Select>
                       </div>
                     ))}
-                    <Button onClick={submitEvaluation} className="w-full">
-                      Save Evaluation
-                    </Button>
+                     <div className="flex gap-2">
+                       <Button onClick={submitEvaluation} className="flex-1">
+                         {Object.keys(userEvaluation).length > 0 ? 'Update Evaluation' : 'Save Evaluation'}
+                       </Button>
+                       {Object.keys(userEvaluation).length > 0 && (
+                         <Button 
+                           variant="outline" 
+                           onClick={() => setIsEditingEvaluation(!isEditingEvaluation)}
+                         >
+                           <Edit className="h-4 w-4" />
+                         </Button>
+                       )}
+                     </div>
                   </CardContent>
                 </Card>
               )}
@@ -613,6 +628,19 @@ const IdeaDetail = () => {
                   </CardContent>
                 </Card>
               )}
+            </div>
+
+            {/* New Components - Full Width */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Document Manager */}
+              <DocumentManager ideaId={id!} />
+              
+              {/* Workflow Manager */}
+              <WorkflowManager 
+                ideaId={id!} 
+                currentStatus={idea.status} 
+                onStatusChange={fetchIdeaData}
+              />
             </div>
           </div>
         </div>
