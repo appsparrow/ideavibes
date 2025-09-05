@@ -14,7 +14,326 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          idea_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          idea_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          idea_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluations: {
+        Row: {
+          ai_suggestion: Json | null
+          created_at: string | null
+          feasibility: number | null
+          id: string
+          idea_id: string
+          market_size: number | null
+          novelty: number | null
+          strategic_fit: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_suggestion?: Json | null
+          created_at?: string | null
+          feasibility?: number | null
+          id?: string
+          idea_id: string
+          market_size?: number | null
+          novelty?: number | null
+          strategic_fit?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_suggestion?: Json | null
+          created_at?: string | null
+          feasibility?: number | null
+          id?: string
+          idea_id?: string
+          market_size?: number | null
+          novelty?: number | null
+          strategic_fit?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ideas: {
+        Row: {
+          ai_opportunity_eval: Json | null
+          ai_summary: string | null
+          created_at: string | null
+          description: string
+          id: string
+          sector: Database["public"]["Enums"]["idea_sector"] | null
+          status: Database["public"]["Enums"]["idea_status"] | null
+          submitted_by: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_opportunity_eval?: Json | null
+          ai_summary?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          sector?: Database["public"]["Enums"]["idea_sector"] | null
+          status?: Database["public"]["Enums"]["idea_status"] | null
+          submitted_by: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_opportunity_eval?: Json | null
+          ai_summary?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          sector?: Database["public"]["Enums"]["idea_sector"] | null
+          status?: Database["public"]["Enums"]["idea_status"] | null
+          submitted_by?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ideas_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investor_interest: {
+        Row: {
+          amount_commitment: number | null
+          created_at: string | null
+          id: string
+          idea_id: string
+          interest_type: Database["public"]["Enums"]["investor_type"]
+          user_id: string
+        }
+        Insert: {
+          amount_commitment?: number | null
+          created_at?: string | null
+          id?: string
+          idea_id: string
+          interest_type: Database["public"]["Enums"]["investor_type"]
+          user_id: string
+        }
+        Update: {
+          amount_commitment?: number | null
+          created_at?: string | null
+          id?: string
+          idea_id?: string
+          interest_type?: Database["public"]["Enums"]["investor_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_interest_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_interest_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          agenda: string | null
+          created_at: string | null
+          date: string
+          id: string
+          ideas_discussed: Json | null
+          notes: string | null
+        }
+        Insert: {
+          agenda?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          ideas_discussed?: Json | null
+          notes?: string | null
+        }
+        Update: {
+          agenda?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          ideas_discussed?: Json | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          investor_type: Database["public"]["Enums"]["investor_type"] | null
+          name: string
+          profile: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          investor_type?: Database["public"]["Enums"]["investor_type"] | null
+          name: string
+          profile?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          investor_type?: Database["public"]["Enums"]["investor_type"] | null
+          name?: string
+          profile?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          idea_id: string
+          status: Database["public"]["Enums"]["task_status"] | null
+          title: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          idea_id: string
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          idea_id?: string
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          idea_id: string
+          user_id: string
+          vote: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          idea_id: string
+          user_id: string
+          vote: boolean
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          idea_id?: string
+          user_id?: string
+          vote?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +342,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      idea_sector: "healthcare" | "real_estate" | "other"
+      idea_status:
+        | "proposed"
+        | "under_review"
+        | "validated"
+        | "investment_ready"
+      investor_type: "active" | "passive" | "strategic"
+      task_status: "pending" | "in_progress" | "done"
+      user_role: "member" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +477,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      idea_sector: ["healthcare", "real_estate", "other"],
+      idea_status: [
+        "proposed",
+        "under_review",
+        "validated",
+        "investment_ready",
+      ],
+      investor_type: ["active", "passive", "strategic"],
+      task_status: ["pending", "in_progress", "done"],
+      user_role: ["member", "admin"],
+    },
   },
 } as const
