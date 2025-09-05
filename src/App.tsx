@@ -7,6 +7,10 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Ideas from "./pages/Ideas";
+import SubmitIdea from "./pages/SubmitIdea";
+import IdeaDetail from "./pages/IdeaDetail";
+import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -22,7 +26,22 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <Index />
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/ideas" element={
+              <ProtectedRoute>
+                <Ideas />
+              </ProtectedRoute>
+            } />
+            <Route path="/submit-idea" element={
+              <ProtectedRoute>
+                <SubmitIdea />
+              </ProtectedRoute>
+            } />
+            <Route path="/ideas/:id" element={
+              <ProtectedRoute>
+                <IdeaDetail />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

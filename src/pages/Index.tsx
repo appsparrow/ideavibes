@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Users, TrendingUp, Vote } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const { user } = useAuth();
@@ -77,9 +78,11 @@ const Index = () => {
         </div>
 
         <div className="text-center">
-          <Button size="lg" className="mb-4">
-            <Plus className="mr-2 h-4 w-4" />
-            Submit New Idea
+          <Button size="lg" className="mb-4" asChild>
+            <Link to="/submit-idea">
+              <Plus className="mr-2 h-4 w-4" />
+              Submit New Idea
+            </Link>
           </Button>
           <p className="text-sm text-muted-foreground">
             Ready to start the deal flow process?

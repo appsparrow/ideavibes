@@ -2,20 +2,49 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Home, TrendingUp, Plus } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
   };
 
+  const navItems = [
+    { href: '/', label: 'Dashboard', icon: Home },
+    { href: '/ideas', label: 'Ideas', icon: TrendingUp },
+    { href: '/submit-idea', label: 'Submit', icon: Plus },
+  ];
+
   return (
     <header className="border-b bg-background">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-primary">IdeaFlow</h1>
+        <div className="flex items-center space-x-8">
+          <Link to="/" className="text-2xl font-bold text-primary">
+            IdeaFlow
+          </Link>
+          
+          <nav className="hidden md:flex items-center space-x-6">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
         
         <div className="flex items-center space-x-4">
