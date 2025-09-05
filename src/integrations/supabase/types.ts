@@ -90,7 +90,15 @@ export type Database = {
           updated_at?: string
           url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evaluations: {
         Row: {
@@ -149,7 +157,9 @@ export type Database = {
           ai_summary: string | null
           created_at: string | null
           description: string
+          drive_folder_id: string | null
           id: string
+          idea_code: string
           sector: Database["public"]["Enums"]["idea_sector"] | null
           status: Database["public"]["Enums"]["idea_status"] | null
           submitted_by: string
@@ -161,7 +171,9 @@ export type Database = {
           ai_summary?: string | null
           created_at?: string | null
           description: string
+          drive_folder_id?: string | null
           id?: string
+          idea_code?: string
           sector?: Database["public"]["Enums"]["idea_sector"] | null
           status?: Database["public"]["Enums"]["idea_status"] | null
           submitted_by: string
@@ -173,7 +185,9 @@ export type Database = {
           ai_summary?: string | null
           created_at?: string | null
           description?: string
+          drive_folder_id?: string | null
           id?: string
+          idea_code?: string
           sector?: Database["public"]["Enums"]["idea_sector"] | null
           status?: Database["public"]["Enums"]["idea_status"] | null
           submitted_by?: string
@@ -425,7 +439,15 @@ export type Database = {
           reason?: string | null
           to_status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflow_transitions_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

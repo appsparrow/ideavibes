@@ -156,9 +156,34 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
     return statusOptions.find(option => option.value === currentStatus);
   };
 
+  const getProgressionCriteria = (fromStatus: string, toStatus: string) => {
+    const criteria: { [key: string]: string[] } = {
+      'proposed->under_review': ['At least 1 community vote', 'Basic idea evaluation completed'],
+      'under_review->validated': ['Minimum 3 evaluations submitted', 'Average scores above threshold', 'Community discussion active'],
+      'validated->investment_ready': ['Due diligence completed', 'Team identified', 'Investment interest expressed']
+    };
+    return criteria[`${fromStatus}->${toStatus}`] || [];
+  };
+
+  const canProgressTo = (targetStatus: string) => {
+    // This could be enhanced with actual database checks
+    switch (targetStatus) {
+      case 'under_review':
+        return true; // Always allow admin to move to review
+      case 'validated':
+        return true; // For now, allow admin discretion
+      case 'investment_ready':
+        return true; // Admin can decide when ready
+      default:
+        return true;
+    }
+  };
+
   const getNextPossibleStatuses = () => {
     const currentIndex = statusOptions.findIndex(option => option.value === currentStatus);
-    return statusOptions.filter((_, index) => index !== currentIndex);
+    return statusOptions.filter((option, index) => 
+      index !== currentIndex && canProgressTo(option.value)
+    );
   };
 
   if (loading) {
@@ -207,17 +232,25 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
                         <SelectValue placeholder="Select new status..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {getNextPossibleStatuses().map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(option.value)}
-                              <div>
-                                <div className="font-medium">{option.label}</div>
-                                <div className="text-xs text-muted-foreground">{option.description}</div>
+                        {getNextPossibleStatuses().map((option) => {
+                          const criteria = getProgressionCriteria(currentStatus, option.value);
+                          return (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(option.value)}
+                                <div>
+                                  <div className="font-medium">{option.label}</div>
+                                  <div className="text-xs text-muted-foreground">{option.description}</div>
+                                  {criteria.length > 0 && (
+                                    <div className="text-xs text-yellow-600 mt-1">
+                                      Criteria: {criteria.join(', ')}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </SelectItem>
-                        ))}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>

@@ -44,6 +44,8 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingDoc, setIsAddingDoc] = useState(false);
+  const [ideaCode, setIdeaCode] = useState<string>('');
+  const [driveFolderId, setDriveFolderId] = useState<string>('');
   const [newDocument, setNewDocument] = useState({
     title: '',
     document_type: 'url',
@@ -54,7 +56,25 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
 
   useEffect(() => {
     fetchDocuments();
+    fetchIdeaInfo();
   }, [ideaId]);
+
+  const fetchIdeaInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ideas')
+        .select('idea_code, drive_folder_id')
+        .eq('id', ideaId)
+        .single();
+
+      if (error) throw error;
+
+      setIdeaCode(data.idea_code || '');
+      setDriveFolderId(data.drive_folder_id || '');
+    } catch (error: any) {
+      console.error('Error fetching idea info:', error);
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
@@ -84,8 +104,45 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
     }
   };
 
+  const updateDriveFolderId = async () => {
+    if (!user || !driveFolderId.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('ideas')
+        .update({ drive_folder_id: driveFolderId.trim() })
+        .eq('id', ideaId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Drive folder updated",
+        description: "Google Drive folder ID has been saved.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating folder ID",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const addDocument = async () => {
     if (!user || !newDocument.title.trim()) return;
+
+    // Validate Google Drive URLs if folder is configured
+    if (driveFolderId && newDocument.document_type === 'google_drive' && newDocument.url) {
+      const driveUrl = newDocument.url.trim();
+      if (!driveUrl.includes(driveFolderId)) {
+        toast({
+          title: "Invalid Google Drive URL",
+          description: `Document must be from the configured folder: ${driveFolderId}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     try {
       const { error } = await supabase
@@ -194,6 +251,11 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
             <CardDescription>
               Attach relevant documents, articles, and resources to this idea
             </CardDescription>
+            {ideaCode && (
+              <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
+                <strong>Idea Code:</strong> {ideaCode}
+              </div>
+            )}
           </div>
           {user && (
             <Dialog open={isAddingDoc} onOpenChange={setIsAddingDoc}>
@@ -211,6 +273,30 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {/* Google Drive Folder Configuration */}
+                  <div className="space-y-2 p-3 bg-muted/50 rounded">
+                    <label className="text-sm font-medium">Google Drive Folder ID (Optional)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={driveFolderId}
+                        onChange={(e) => setDriveFolderId(e.target.value)}
+                        placeholder="Enter Google Drive folder ID..."
+                        className="flex-1 px-2 py-1 text-xs border rounded"
+                      />
+                      <Button 
+                        onClick={updateDriveFolderId}
+                        size="sm"
+                        variant="outline"
+                        disabled={!driveFolderId.trim()}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Configure to automatically organize documents in Gmail/Drive folder: {ideaCode}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="doc-title">Title</Label>
                     <Input
