@@ -16,6 +16,7 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import GroupJoin from "./pages/GroupJoin";
 import GroupCreate from "./pages/GroupCreate";
+import Groups from "./pages/Groups";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,11 @@ const App = () => (
               <Route path="/groups/create" element={
                 <ProtectedRoute>
                   <GroupCreate />
+                </ProtectedRoute>
+              } />
+              <Route path="/groups" element={
+                <ProtectedRoute>
+                  <Groups />
                 </ProtectedRoute>
               } />
               <Route path="/" element={

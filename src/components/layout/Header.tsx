@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Home, TrendingUp, Plus } from 'lucide-react';
+import { LogOut, User, Home, TrendingUp, Plus, Users2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
@@ -17,6 +17,7 @@ const Header = () => {
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/ideas', label: 'Ideas', icon: TrendingUp },
     { href: '/submit-idea', label: 'Submit', icon: Plus },
+    { href: '/groups', label: 'Groups', icon: Users2 },
     { href: '/users', label: 'Users', icon: User },
   ];
 
