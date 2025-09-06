@@ -151,6 +151,68 @@ export type Database = {
           },
         ]
       }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          invite_code: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          invite_code?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          invite_code?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ideas: {
         Row: {
           ai_opportunity_eval: Json | null
@@ -158,6 +220,7 @@ export type Database = {
           created_at: string | null
           description: string
           drive_folder_id: string | null
+          group_id: string | null
           id: string
           idea_code: string
           sector: Database["public"]["Enums"]["idea_sector"] | null
@@ -172,6 +235,7 @@ export type Database = {
           created_at?: string | null
           description: string
           drive_folder_id?: string | null
+          group_id?: string | null
           id?: string
           idea_code?: string
           sector?: Database["public"]["Enums"]["idea_sector"] | null
@@ -186,6 +250,7 @@ export type Database = {
           created_at?: string | null
           description?: string
           drive_folder_id?: string | null
+          group_id?: string | null
           id?: string
           idea_code?: string
           sector?: Database["public"]["Enums"]["idea_sector"] | null
@@ -195,6 +260,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ideas_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ideas_submitted_by_fkey"
             columns: ["submitted_by"]
@@ -251,6 +323,7 @@ export type Database = {
           agenda: string | null
           created_at: string | null
           date: string
+          group_id: string | null
           id: string
           ideas_discussed: Json | null
           notes: string | null
@@ -259,6 +332,7 @@ export type Database = {
           agenda?: string | null
           created_at?: string | null
           date: string
+          group_id?: string | null
           id?: string
           ideas_discussed?: Json | null
           notes?: string | null
@@ -267,11 +341,20 @@ export type Database = {
           agenda?: string | null
           created_at?: string | null
           date?: string
+          group_id?: string | null
           id?: string
           ideas_discussed?: Json | null
           notes?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meetings_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -462,6 +545,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      join_group_by_invite_code: {
+        Args: { invite_code_param: string }
+        Returns: Json
+      }
       update_idea_status: {
         Args: {
           p_idea_id: string
@@ -472,7 +559,18 @@ export type Database = {
       }
     }
     Enums: {
-      idea_sector: "healthcare" | "real_estate" | "other"
+      idea_sector:
+        | "technology"
+        | "healthcare"
+        | "finance"
+        | "education"
+        | "manufacturing"
+        | "retail"
+        | "agriculture"
+        | "energy"
+        | "transportation"
+        | "real_estate"
+        | "entertainment"
       idea_status:
         | "proposed"
         | "under_review"
@@ -608,7 +706,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      idea_sector: ["healthcare", "real_estate", "other"],
+      idea_sector: [
+        "technology",
+        "healthcare",
+        "finance",
+        "education",
+        "manufacturing",
+        "retail",
+        "agriculture",
+        "energy",
+        "transportation",
+        "real_estate",
+        "entertainment",
+      ],
       idea_status: [
         "proposed",
         "under_review",
