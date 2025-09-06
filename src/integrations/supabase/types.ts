@@ -557,6 +557,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_in_group: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_group_admin: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       idea_sector:
