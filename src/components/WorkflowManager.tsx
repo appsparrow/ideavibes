@@ -107,7 +107,7 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
     try {
       const { error } = await supabase.rpc('update_idea_status', {
         p_idea_id: ideaId,
-        p_new_status: newStatus,
+        p_new_status: newStatus as 'proposed' | 'under_review' | 'validated' | 'investment_ready',
         p_reason: reason.trim() || null
       });
 

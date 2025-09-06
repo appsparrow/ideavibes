@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useGroupContext } from '@/hooks/useGroupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import GroupSelector from '@/components/GroupSelector';
 import { useToast } from '@/hooks/use-toast';
 
 interface DashboardStats {
@@ -32,6 +34,7 @@ interface DashboardStats {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { selectedGroupId, setSelectedGroupId, selectedGroupName, setSelectedGroupName } = useGroupContext();
   const [stats, setStats] = useState<DashboardStats>({
     totalIdeas: 0,
     myIdeas: 0,
@@ -42,26 +45,37 @@ const Dashboard = () => {
     myTasks: []
   });
   const [loading, setLoading] = useState(true);
+  const [showGroupSelector, setShowGroupSelector] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
     }
-  }, [user]);
+  }, [user, selectedGroupId]);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch total ideas count
-      const { count: totalIdeas } = await supabase
-        .from('ideas')
-        .select('*', { count: 'exact', head: true });
+      // Build group filter
+      const groupFilter = selectedGroupId ? { eq: ['group_id', selectedGroupId] } : 
+        { or: `group_id.is.null,group_id.in.(${await getUserGroupIds()})` };
+
+      // Fetch total ideas count (scoped to groups user has access to)
+      let totalIdeasQuery = supabase.from('ideas').select('*', { count: 'exact', head: true });
+      if (selectedGroupId) {
+        totalIdeasQuery = totalIdeasQuery.eq('group_id', selectedGroupId);
+      } else {
+        const userGroupIds = await getUserGroupIds();
+        totalIdeasQuery = totalIdeasQuery.or(`group_id.is.null,group_id.in.(${userGroupIds})`);
+      }
+      const { count: totalIdeas } = await totalIdeasQuery;
 
       // Fetch user's ideas count
-      const { count: myIdeas } = await supabase
-        .from('ideas')
-        .select('*', { count: 'exact', head: true })
-        .eq('submitted_by', user!.id);
+      let myIdeasQuery = supabase.from('ideas').select('*', { count: 'exact', head: true }).eq('submitted_by', user!.id);
+      if (selectedGroupId) {
+        myIdeasQuery = myIdeasQuery.eq('group_id', selectedGroupId);
+      }
+      const { count: myIdeas } = await myIdeasQuery;
 
       // Fetch user's evaluations count
       const { count: myEvaluations } = await supabase
@@ -75,8 +89,8 @@ const Dashboard = () => {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user!.id);
 
-      // Fetch top ideas (by vote count)
-      const { data: ideasWithVotes } = await supabase
+      // Fetch top ideas (by vote count) - scoped to current group
+      let topIdeasQuery = supabase
         .from('ideas')
         .select(`
           id,
@@ -89,6 +103,15 @@ const Dashboard = () => {
         `)
         .order('created_at', { ascending: false })
         .limit(5);
+      
+      if (selectedGroupId) {
+        topIdeasQuery = topIdeasQuery.eq('group_id', selectedGroupId);
+      } else {
+        const userGroupIds = await getUserGroupIds();
+        topIdeasQuery = topIdeasQuery.or(`group_id.is.null,group_id.in.(${userGroupIds})`);
+      }
+      
+      const { data: ideasWithVotes } = await topIdeasQuery;
 
       const topIdeas = (ideasWithVotes || []).map(idea => {
         const votes = idea.votes || [];
@@ -159,6 +182,34 @@ const Dashboard = () => {
     }
   };
 
+  const getUserGroupIds = async (): Promise<string> => {
+    const { data } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', user!.id);
+    
+    return (data || []).map(item => item.group_id).join(',') || 'none';
+  };
+
+  const handleGroupSelect = async (groupId: string | null) => {
+    setSelectedGroupId(groupId);
+    
+    if (groupId) {
+      // Fetch group name
+      const { data } = await supabase
+        .from('groups')
+        .select('name')
+        .eq('id', groupId)
+        .single();
+      
+      setSelectedGroupName(data?.name || null);
+    } else {
+      setSelectedGroupName(null);
+    }
+    
+    setShowGroupSelector(false);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'proposed': return 'bg-blue-100 text-blue-800';
@@ -197,20 +248,46 @@ const Dashboard = () => {
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Investment Dashboard</h1>
-              <p className="text-muted-foreground">
-                Track your ideas, evaluations, and investment opportunities
-              </p>
+          {/* Group Selector */}
+          {showGroupSelector ? (
+            <div className="mb-8">
+              <GroupSelector 
+                onGroupSelect={handleGroupSelect}
+                selectedGroupId={selectedGroupId}
+              />
             </div>
-            <Button asChild>
-              <Link to="/submit-idea">
-                <Plus className="mr-2 h-4 w-4" />
-                Submit Idea
-              </Link>
-            </Button>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold">Investment Dashboard</h1>
+                  {selectedGroupName ? (
+                    <Badge variant="outline" className="text-sm">
+                      {selectedGroupName}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-sm">All Groups</Badge>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowGroupSelector(true)}
+                  >
+                    Switch Workspace
+                  </Button>
+                </div>
+                <p className="text-muted-foreground">
+                  Track your ideas, evaluations, and investment opportunities
+                </p>
+              </div>
+              <Button asChild>
+                <Link to="/submit-idea">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Submit Idea
+                </Link>
+              </Button>
+            </div>
+          )}
 
           {/* Stats Overview */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
