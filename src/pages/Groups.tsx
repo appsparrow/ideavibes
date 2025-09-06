@@ -116,11 +116,11 @@ const Groups = () => {
       // Then get profiles for each member
       const membersWithProfiles = await Promise.all(
         (membersData || []).map(async (member) => {
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('name, email')
             .eq('id', member.user_id)
-            .single();
+            .maybeSingle();
 
           return {
             ...member,
