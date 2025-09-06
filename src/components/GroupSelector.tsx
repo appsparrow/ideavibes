@@ -96,14 +96,20 @@ const GroupSelector = ({ onGroupSelect, selectedGroupId }: GroupSelectorProps) =
         <CardHeader className="text-center">
           <CardTitle>No Groups Yet</CardTitle>
           <CardDescription>
-            You're not part of any group yet. Ask an admin for an invite link, or wait for an email invitation.
+            You're not part of any group yet. Create a new group or join with an invite code.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <Button asChild>
+        <CardContent className="text-center space-y-2">
+          <Button asChild className="w-full">
+            <a href="/groups/create" className="inline-flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create New Group
+            </a>
+          </Button>
+          <Button variant="outline" asChild className="w-full">
             <a href="/groups/join" className="inline-flex items-center gap-2">
               <ExternalLink className="h-4 w-4" />
-              Join Group with Invite Code
+              Join with Invite Code
             </a>
           </Button>
         </CardContent>

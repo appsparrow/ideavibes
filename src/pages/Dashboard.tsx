@@ -46,13 +46,37 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
+  const [userHasGroups, setUserHasGroups] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      checkUserGroups();
     }
   }, [user, selectedGroupId]);
+
+  const checkUserGroups = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id)
+        .limit(1);
+      
+      const hasGroups = (data || []).length > 0;
+      setUserHasGroups(hasGroups);
+      
+      // Auto-open group selector if user has no groups
+      if (!hasGroups && !showGroupSelector) {
+        setShowGroupSelector(true);
+      }
+    } catch (error) {
+      console.error('Error checking user groups:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
