@@ -40,7 +40,7 @@ interface DocumentManagerProps {
 }
 
 const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
-  const { user } = useAuth();
+  const { user, isModerator } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingDoc, setIsAddingDoc] = useState(false);
@@ -409,7 +409,7 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
                           </a>
                         </Button>
                       )}
-                      {user && user.id === doc.created_by && (
+                      {user && (user.id === doc.created_by || isModerator) && (
                         <Button
                           variant="ghost"
                           size="sm"

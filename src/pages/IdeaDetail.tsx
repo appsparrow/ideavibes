@@ -26,6 +26,8 @@ import {
 import Header from '@/components/layout/Header';
 import DocumentManager from '@/components/DocumentManager';
 import WorkflowManager from '@/components/WorkflowManager';
+import IdeaEditor from '@/components/IdeaEditor';
+import CommentEditor from '@/components/CommentEditor';
 
 interface IdeaData {
   id: string;
@@ -383,17 +385,26 @@ const IdeaDetail = () => {
                       {idea.status.replace('_', ' ')}
                     </Badge>
                   </div>
-                  <CardTitle className="text-2xl">{idea.title}</CardTitle>
-                  <CardDescription className="flex items-center gap-4 text-base">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      Submitted by {idea.submitter_name}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(idea.created_at).toLocaleDateString()}
-                    </span>
-                  </CardDescription>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl">{idea.title}</CardTitle>
+                      <CardDescription className="flex items-center gap-4 text-base">
+                        <span className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          Submitted by {idea.submitter_name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(idea.created_at).toLocaleDateString()}
+                        </span>
+                      </CardDescription>
+                    </div>
+                    <IdeaEditor 
+                      idea={idea} 
+                      onUpdate={fetchIdeaData}
+                      onDelete={() => navigate('/ideas')}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none">
@@ -444,11 +455,14 @@ const IdeaDetail = () => {
                   <div className="space-y-4">
                     {comments.map((comment) => (
                       <div key={comment.id} className="border-l-2 border-muted pl-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{comment.commenter_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(comment.created_at).toLocaleDateString()}
-                          </span>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{comment.commenter_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(comment.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <CommentEditor comment={comment} onUpdate={fetchIdeaData} />
                         </div>
                         <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                       </div>

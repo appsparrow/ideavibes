@@ -34,14 +34,18 @@ interface WorkflowManagerProps {
 }
 
 const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowManagerProps) => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [transitions, setTransitions] = useState<WorkflowTransition[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [reason, setReason] = useState('');
   const [progressionStatus, setProgressionStatus] = useState<{
+    canProgress: boolean;
+    metCriteria: string[];
+    unmetCriteria: string[];
+  } | null>(null);
+  const [nextStageStatus, setNextStageStatus] = useState<{
     canProgress: boolean;
     metCriteria: string[];
     unmetCriteria: string[];
@@ -57,8 +61,8 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
 
   useEffect(() => {
     fetchTransitions();
-    checkAdminStatus();
-  }, [ideaId]);
+    checkNextStageProgress();
+  }, [ideaId, currentStatus]);
 
   const fetchTransitions = async () => {
     try {
@@ -88,21 +92,12 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
     }
   };
 
-  const checkAdminStatus = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (!error && data?.role === 'admin') {
-        setIsAdmin(true);
-      }
-    } catch (error: any) {
-      console.log('Not admin or error checking status');
+  const checkNextStageProgress = async () => {
+    const nextStatusIndex = statusOptions.findIndex(option => option.value === currentStatus) + 1;
+    if (nextStatusIndex < statusOptions.length) {
+      const nextStatus = statusOptions[nextStatusIndex].value;
+      const status = await checkProgressionCriteria(nextStatus);
+      setNextStageStatus(status);
     }
   };
 
@@ -466,6 +461,48 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
             </div>
           </div>
         </div>
+
+        {/* Next Stage Progression Criteria */}
+        {nextStageStatus && statusOptions.findIndex(opt => opt.value === currentStatus) < statusOptions.length - 1 && (
+          <div className="p-4 border rounded-lg">
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              Progress to Next Stage
+            </h4>
+            
+            {nextStageStatus.metCriteria.length > 0 && (
+              <div className="space-y-1 mb-3">
+                <div className="text-xs font-medium text-green-700">✓ Requirements Met:</div>
+                {nextStageStatus.metCriteria.map((criteria, index) => (
+                  <div key={index} className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    {criteria}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {nextStageStatus.unmetCriteria.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-orange-700">⚠ Requirements Needed:</div>
+                {nextStageStatus.unmetCriteria.map((criteria, index) => (
+                  <div key={index} className="text-xs text-orange-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {criteria}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-3 text-xs text-muted-foreground">
+              {nextStageStatus.canProgress ? (
+                <span className="text-green-600 font-medium">✓ Ready for next stage!</span>
+              ) : (
+                <span>Complete the requirements above to progress to the next stage.</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Workflow History */}
         <div>

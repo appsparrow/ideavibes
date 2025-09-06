@@ -458,8 +458,18 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_moderator: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       update_idea_status: {
-        Args: { p_idea_id: string; p_new_status: string; p_reason?: string }
+        Args:
+          | {
+              p_idea_id: string
+              p_new_status: Database["public"]["Enums"]["idea_status"]
+              p_reason?: string
+            }
+          | { p_idea_id: string; p_new_status: string; p_reason?: string }
         Returns: undefined
       }
     }
