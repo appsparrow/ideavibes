@@ -11,9 +11,10 @@ import { useNavigate } from 'react-router-dom';
 
 interface JoinGroupFormProps {
   inviteCode?: string;
+  onSuccess?: () => void;
 }
 
-const JoinGroupForm = ({ inviteCode: initialInviteCode }: JoinGroupFormProps) => {
+const JoinGroupForm = ({ inviteCode: initialInviteCode, onSuccess }: JoinGroupFormProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [inviteCode, setInviteCode] = useState(initialInviteCode || '');
@@ -39,7 +40,8 @@ const JoinGroupForm = ({ inviteCode: initialInviteCode }: JoinGroupFormProps) =>
           title: "Welcome to the group!",
           description: `You've successfully joined ${result.group_name}.`,
         });
-        navigate('/');
+        onSuccess?.();
+        if (!onSuccess) navigate('/');
       } else {
         toast({
           title: "Failed to join group",

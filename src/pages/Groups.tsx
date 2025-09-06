@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/layout/Header';
 import CreateGroupDialog from '@/components/CreateGroupDialog';
+import JoinGroupForm from '@/components/JoinGroupForm';
 
 interface Group {
   id: string;
@@ -37,7 +38,7 @@ interface GroupMember {
 }
 
 const Groups = () => {
-  const { user } = useAuth();
+  const { user, isAdmin, isModerator } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
@@ -228,9 +229,32 @@ const Groups = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Groups Management</h1>
-            <p className="text-muted-foreground">Manage your groups, members, and invite codes</p>
+            <p className="text-muted-foreground">
+              {isAdmin || isModerator ? 'Manage your groups, members, and invite codes' : 'View your groups and members'}
+            </p>
           </div>
-          <CreateGroupDialog onGroupCreated={fetchGroups} />
+          <div className="flex gap-2">
+            {(isAdmin || isModerator) && <CreateGroupDialog onGroupCreated={fetchGroups} />}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Join Group
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Join a Group</DialogTitle>
+                  <DialogDescription>
+                    Enter an invite code to join an existing group
+                  </DialogDescription>
+                </DialogHeader>
+                <JoinGroupForm onSuccess={() => {
+                  fetchGroups();
+                }} />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {groups.length === 0 ? (
@@ -238,11 +262,14 @@ const Groups = () => {
             <CardHeader className="text-center">
               <CardTitle>No Groups Yet</CardTitle>
               <CardDescription>
-                Create your first group to start collaborating with your team.
+                {isAdmin || isModerator 
+                  ? "Create your first group to start collaborating with your team."
+                  : "Ask an admin for an invite code to join a group."
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <CreateGroupDialog onGroupCreated={fetchGroups} />
+              {(isAdmin || isModerator) && <CreateGroupDialog onGroupCreated={fetchGroups} />}
             </CardContent>
           </Card>
         ) : (
@@ -268,7 +295,7 @@ const Groups = () => {
                         <Badge variant={group.member_role === 'admin' ? 'default' : 'secondary'}>
                           {group.member_role}
                         </Badge>
-                        {group.member_role === 'admin' && (
+                        {(isAdmin || isModerator) && group.member_role === 'admin' && (
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button 
@@ -335,19 +362,21 @@ const Groups = () => {
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2 mt-3">
-                      <code className="bg-muted px-2 py-1 rounded text-xs">{group.invite_code}</code>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyInviteLink(group.invite_code);
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {(isAdmin || isModerator) && (
+                      <div className="flex items-center gap-2 mt-3">
+                        <code className="bg-muted px-2 py-1 rounded text-xs">{group.invite_code}</code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyInviteLink(group.invite_code);
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -368,18 +397,20 @@ const Groups = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                          <span className="font-medium">Invite Link:</span>
-                          <code className="flex-1 text-sm">{`${window.location.origin}/groups/join/${selectedGroup.invite_code}`}</code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyInviteLink(selectedGroup.invite_code)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <div className="space-y-4">
+                          {(isAdmin || isModerator) && (
+                            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                              <span className="font-medium">Invite Link:</span>
+                              <code className="flex-1 text-sm">{`${window.location.origin}/groups/join/${selectedGroup.invite_code}`}</code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyInviteLink(selectedGroup.invite_code)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
 
                         {membersLoading ? (
                           <div className="space-y-2">
@@ -399,7 +430,7 @@ const Groups = () => {
                                   <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
                                     {member.role}
                                   </Badge>
-                                  {selectedGroup.member_role === 'admin' && member.user_id !== user?.id && (
+                                  {(isAdmin || isModerator) && selectedGroup.member_role === 'admin' && member.user_id !== user?.id && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
