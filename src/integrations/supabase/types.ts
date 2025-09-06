@@ -472,7 +472,7 @@ export type Database = {
         | "investment_ready"
       investor_type: "active" | "passive" | "strategic"
       task_status: "pending" | "in_progress" | "done"
-      user_role: "member" | "admin"
+      user_role: "member" | "admin" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -609,7 +609,7 @@ export const Constants = {
       ],
       investor_type: ["active", "passive", "strategic"],
       task_status: ["pending", "in_progress", "done"],
-      user_role: ["member", "admin"],
+      user_role: ["member", "admin", "moderator"],
     },
   },
 } as const
