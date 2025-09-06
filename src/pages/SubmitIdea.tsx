@@ -70,7 +70,7 @@ const SubmitIdea = () => {
           description,
           sector: sector as any,
           submitted_by: user.id,
-          group_id: selectedGroup || null,
+          group_id: selectedGroup === 'global' ? null : selectedGroup || null,
         });
 
       if (error) throw error;
@@ -172,7 +172,7 @@ const SubmitIdea = () => {
                       <SelectValue placeholder="Select a group workspace (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Global (visible to all groups)</SelectItem>
+                      <SelectItem value="global">Global (visible to all groups)</SelectItem>
                       {userGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
