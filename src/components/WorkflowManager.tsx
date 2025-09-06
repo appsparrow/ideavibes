@@ -41,6 +41,11 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [reason, setReason] = useState('');
+  const [progressionStatus, setProgressionStatus] = useState<{
+    canProgress: boolean;
+    metCriteria: string[];
+    unmetCriteria: string[];
+  } | null>(null);
   const { toast } = useToast();
 
   const statusOptions = [
@@ -158,25 +163,146 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
 
   const getProgressionCriteria = (fromStatus: string, toStatus: string) => {
     const criteria: { [key: string]: string[] } = {
-      'proposed->under_review': ['At least 1 community vote', 'Basic idea evaluation completed'],
-      'under_review->validated': ['Minimum 3 evaluations submitted', 'Average scores above threshold', 'Community discussion active'],
-      'validated->investment_ready': ['Due diligence completed', 'Team identified', 'Investment interest expressed']
+      'proposed->under_review': [
+        'At least 3-5 members show interest (votes or comments)',
+        'At least 1 evaluation submitted',
+        'Optional: Rough capital requirement estimate'
+      ],
+      'under_review->validated': [
+        'Minimum 5 evaluations submitted',
+        'Average composite score ≥ 12/20 (60%)',
+        'At least one key risk addressed in comments',
+        'Initial financial snapshot provided (investment needs, ROI, timeline)'
+      ],
+      'validated->investment_ready': [
+        'Validation tasks completed by working group',
+        'Composite score maintained above threshold',
+        'At least 3 investors express interest',
+        'Preliminary commitments logged',
+        'At least one document uploaded (deck, memo, 1-pager)'
+      ]
     };
     return criteria[`${fromStatus}->${toStatus}`] || [];
   };
 
-  const canProgressTo = (targetStatus: string) => {
-    // This could be enhanced with actual database checks
-    switch (targetStatus) {
-      case 'under_review':
-        return true; // Always allow admin to move to review
-      case 'validated':
-        return true; // For now, allow admin discretion
-      case 'investment_ready':
-        return true; // Admin can decide when ready
-      default:
-        return true;
+  const checkProgressionCriteria = async (targetStatus: string): Promise<{ canProgress: boolean; metCriteria: string[]; unmetCriteria: string[] }> => {
+    const metCriteria: string[] = [];
+    const unmetCriteria: string[] = [];
+
+    try {
+      if (currentStatus === 'proposed' && targetStatus === 'under_review') {
+        // Check votes and comments count
+        const { data: votesData } = await supabase
+          .from('votes')
+          .select('id')
+          .eq('idea_id', ideaId);
+        
+        const { data: commentsData } = await supabase
+          .from('comments')
+          .select('id')
+          .eq('idea_id', ideaId);
+        
+        const { data: evaluationsData } = await supabase
+          .from('evaluations')
+          .select('id')
+          .eq('idea_id', ideaId);
+
+        const totalInteractions = (votesData?.length || 0) + (commentsData?.length || 0);
+        
+        if (totalInteractions >= 3) {
+          metCriteria.push('Community interest demonstrated (votes/comments)');
+        } else {
+          unmetCriteria.push(`Need ${3 - totalInteractions} more community interactions`);
+        }
+
+        if ((evaluationsData?.length || 0) >= 1) {
+          metCriteria.push('At least 1 evaluation submitted');
+        } else {
+          unmetCriteria.push('Need at least 1 evaluation');
+        }
+      }
+
+      if (currentStatus === 'under_review' && targetStatus === 'validated') {
+        const { data: evaluationsData } = await supabase
+          .from('evaluations')
+          .select('market_size, feasibility, strategic_fit, novelty')
+          .eq('idea_id', ideaId);
+
+        if ((evaluationsData?.length || 0) >= 5) {
+          metCriteria.push('Minimum 5 evaluations submitted');
+        } else {
+          unmetCriteria.push(`Need ${5 - (evaluationsData?.length || 0)} more evaluations`);
+        }
+
+        // Calculate average score
+        if (evaluationsData && evaluationsData.length > 0) {
+          const totalScore = evaluationsData.reduce((sum, evaluation) => {
+            return sum + (evaluation.market_size || 0) + (evaluation.feasibility || 0) + 
+                   (evaluation.strategic_fit || 0) + (evaluation.novelty || 0);
+          }, 0);
+          const averageScore = totalScore / evaluationsData.length;
+          
+          if (averageScore >= 12) {
+            metCriteria.push(`Average score above threshold (${averageScore.toFixed(1)}/20)`);
+          } else {
+            unmetCriteria.push(`Average score too low (${averageScore.toFixed(1)}/20, need ≥12)`);
+          }
+        }
+
+        const { data: commentsData } = await supabase
+          .from('comments')
+          .select('content')
+          .eq('idea_id', ideaId);
+
+        if ((commentsData?.length || 0) >= 3) {
+          metCriteria.push('Community discussion active');
+        } else {
+          unmetCriteria.push('Need more community discussion');
+        }
+      }
+
+      if (currentStatus === 'validated' && targetStatus === 'investment_ready') {
+        const { data: investorData } = await supabase
+          .from('investor_interest')
+          .select('id')
+          .eq('idea_id', ideaId);
+
+        if ((investorData?.length || 0) >= 3) {
+          metCriteria.push('Investor interest demonstrated');
+        } else {
+          unmetCriteria.push(`Need ${3 - (investorData?.length || 0)} more investor expressions of interest`);
+        }
+
+        const { data: documentsData } = await supabase
+          .from('documents')
+          .select('id')
+          .eq('idea_id', ideaId);
+
+        if ((documentsData?.length || 0) >= 1) {
+          metCriteria.push('Supporting documents provided');
+        } else {
+          unmetCriteria.push('Need at least 1 supporting document');
+        }
+      }
+
+      return {
+        canProgress: unmetCriteria.length === 0,
+        metCriteria,
+        unmetCriteria
+      };
+    } catch (error) {
+      console.error('Error checking progression criteria:', error);
+      return {
+        canProgress: false,
+        metCriteria: [],
+        unmetCriteria: ['Error checking criteria']
+      };
     }
+  };
+
+  const canProgressTo = (targetStatus: string) => {
+    // Allow admin override, but we'll show criteria status
+    return isAdmin;
   };
 
   const getNextPossibleStatuses = () => {
@@ -224,36 +350,69 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
                     Change the workflow status of this idea (Admin only)
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                  <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">New Status</label>
-                    <Select value={newStatus} onValueChange={setNewStatus}>
+                    <Select value={newStatus} onValueChange={async (value) => {
+                      setNewStatus(value);
+                      const status = await checkProgressionCriteria(value);
+                      setProgressionStatus(status);
+                    }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select new status..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {getNextPossibleStatuses().map((option) => {
-                          const criteria = getProgressionCriteria(currentStatus, option.value);
-                          return (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(option.value)}
-                                <div>
-                                  <div className="font-medium">{option.label}</div>
-                                  <div className="text-xs text-muted-foreground">{option.description}</div>
-                                  {criteria.length > 0 && (
-                                    <div className="text-xs text-yellow-600 mt-1">
-                                      Criteria: {criteria.join(', ')}
-                                    </div>
-                                  )}
-                                </div>
+                        {getNextPossibleStatuses().map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(option.value)}
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-muted-foreground">{option.description}</div>
                               </div>
-                            </SelectItem>
-                          );
-                        })}
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Progression Criteria Status */}
+                  {progressionStatus && newStatus && (
+                    <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
+                      <h4 className="font-medium text-sm">Progression Criteria</h4>
+                      
+                      {progressionStatus.metCriteria.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-green-700">✓ Requirements Met:</div>
+                          {progressionStatus.metCriteria.map((criteria, index) => (
+                            <div key={index} className="text-xs text-green-600 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              {criteria}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {progressionStatus.unmetCriteria.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-orange-700">⚠ Requirements Not Met:</div>
+                          {progressionStatus.unmetCriteria.map((criteria, index) => (
+                            <div key={index} className="text-xs text-orange-600 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {criteria}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {!progressionStatus.canProgress && (
+                        <div className="text-xs text-amber-600 p-2 bg-amber-50 rounded border border-amber-200">
+                          <strong>Admin Override:</strong> You can still proceed as an admin, but consider if the idea is truly ready for the next stage.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Reason (Optional)</label>
