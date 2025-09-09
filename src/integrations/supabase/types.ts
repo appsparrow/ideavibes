@@ -318,33 +318,80 @@ export type Database = {
           },
         ]
       }
+      meeting_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          meeting_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_notes_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
+          action_items: Json | null
           agenda: string | null
           created_at: string | null
           date: string
           group_id: string | null
           id: string
           ideas_discussed: Json | null
+          meeting_time: string | null
           notes: string | null
+          session_feedback: string | null
+          status: string | null
         }
         Insert: {
+          action_items?: Json | null
           agenda?: string | null
           created_at?: string | null
           date: string
           group_id?: string | null
           id?: string
           ideas_discussed?: Json | null
+          meeting_time?: string | null
           notes?: string | null
+          session_feedback?: string | null
+          status?: string | null
         }
         Update: {
+          action_items?: Json | null
           agenda?: string | null
           created_at?: string | null
           date?: string
           group_id?: string | null
           id?: string
           ideas_discussed?: Json | null
+          meeting_time?: string | null
           notes?: string | null
+          session_feedback?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -358,31 +405,52 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           created_at: string | null
           email: string
+          expertise_tags: string[] | null
+          first_name: string | null
           id: string
           investor_type: Database["public"]["Enums"]["investor_type"] | null
+          last_name: string | null
           name: string
+          phone: string | null
           profile: string | null
+          profile_photo_url: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          skills: string[] | null
         }
         Insert: {
+          bio?: string | null
           created_at?: string | null
           email: string
+          expertise_tags?: string[] | null
+          first_name?: string | null
           id: string
           investor_type?: Database["public"]["Enums"]["investor_type"] | null
+          last_name?: string | null
           name: string
+          phone?: string | null
           profile?: string | null
+          profile_photo_url?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          skills?: string[] | null
         }
         Update: {
+          bio?: string | null
           created_at?: string | null
           email?: string
+          expertise_tags?: string[] | null
+          first_name?: string | null
           id?: string
           investor_type?: Database["public"]["Enums"]["investor_type"] | null
+          last_name?: string | null
           name?: string
+          phone?: string | null
           profile?: string | null
+          profile_photo_url?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          skills?: string[] | null
         }
         Relationships: []
       }

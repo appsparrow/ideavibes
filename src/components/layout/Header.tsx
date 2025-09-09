@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Home, TrendingUp, Plus, Users2 } from 'lucide-react';
+import { LogOut, User, Home, TrendingUp, Plus, Users2, Calendar, UserCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
@@ -18,6 +18,7 @@ const Header = () => {
     { href: '/ideas', label: 'Ideas', icon: TrendingUp },
     { href: '/submit-idea', label: 'Submit', icon: Plus },
     { href: '/groups', label: 'Groups', icon: Users2 },
+    { href: '/meetings', label: 'Meetings', icon: Calendar },
     { href: '/users', label: 'Users', icon: User },
   ];
 
@@ -66,6 +67,12 @@ const Header = () => {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{user.email}</p>
                   </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />

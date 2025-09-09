@@ -17,6 +17,8 @@ import Settings from "./pages/Settings";
 import GroupJoin from "./pages/GroupJoin";
 import GroupCreate from "./pages/GroupCreate";
 import Groups from "./pages/Groups";
+import Meetings from "./pages/Meetings";
+import EnhancedProfile from "./pages/EnhancedProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -65,6 +67,16 @@ const App = () => (
               <Route path="/ideas/:id" element={
                 <ProtectedRoute>
                   <IdeaDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/meetings" element={
+                <ProtectedRoute>
+                  <Meetings />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <EnhancedProfile />
                 </ProtectedRoute>
               } />
               <Route path="/users" element={
