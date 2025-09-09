@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { User, Phone, Mail, Camera, Tag, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
+import Layout from '@/components/layout/Layout';
 
 interface EnhancedProfile {
   id: string;
@@ -26,7 +27,7 @@ interface EnhancedProfile {
   role?: string;
 }
 
-export default function EnhancedProfile() {
+function EnhancedProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<EnhancedProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -357,6 +358,10 @@ export default function EnhancedProfile() {
           </div>
         </CardContent>
       </Card>
-    </div>
+        )}
+      </div>
+    </Layout>
   );
 }
+
+export default EnhancedProfile;

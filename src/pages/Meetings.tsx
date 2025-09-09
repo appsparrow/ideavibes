@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Calendar, Clock, Users, FileText, CheckSquare, MessageSquare } from 'lucide-react';
+import { Plus, Calendar, Clock, Users, FileText, CheckSquare, MessageSquare, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Layout from '@/components/layout/Layout';
 
 interface Meeting {
   id: string;
@@ -38,7 +39,7 @@ interface MeetingNote {
   } | null;
 }
 
-export default function Meetings() {
+function Meetings() {
   const { user, isAdmin, isModerator } = useAuth();
   const { selectedGroupId, selectedGroupName } = useGroupContext();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -372,10 +373,23 @@ export default function Meetings() {
               {/* Collaborative Notes */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5" />
-                    Collaborative Notes
-                  </CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5" />
+                      Collaborative Notes
+                    </CardTitle>
+                    {(isAdmin || isModerator) && meetingNotes.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => generateAINotes(selectedMeeting.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <Bot className="h-4 w-4" />
+                        Generate AI Summary
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3 max-h-64 overflow-y-auto">
@@ -478,6 +492,8 @@ export default function Meetings() {
           )}
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }
+
+export default Meetings;

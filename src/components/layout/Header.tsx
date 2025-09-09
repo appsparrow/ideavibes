@@ -13,13 +13,20 @@ const Header = () => {
     await signOut();
   };
 
-  const navItems = [
+  // Core navigation items organized by importance
+  const coreNavItems = [
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/ideas', label: 'Ideas', icon: TrendingUp },
-    { href: '/submit-idea', label: 'Submit', icon: Plus },
-    { href: '/groups', label: 'Groups', icon: Users2 },
     { href: '/meetings', label: 'Meetings', icon: Calendar },
+  ];
+
+  const structureNavItems = [
+    { href: '/groups', label: 'Groups', icon: Users2 },
     { href: '/users', label: 'Users', icon: User },
+  ];
+
+  const actionNavItems = [
+    { href: '/submit-idea', label: 'Submit', icon: Plus },
   ];
 
   return (
@@ -30,23 +37,72 @@ const Header = () => {
             IdeaFlow
           </Link>
           
-          <nav className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
-                    isActive ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+          <nav className="hidden md:flex items-center space-x-8">
+            {/* Core Navigation */}
+            <div className="flex items-center space-x-6">
+              {coreNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+                      isActive ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            
+            {/* Separator */}
+            <div className="h-4 w-px bg-border"></div>
+            
+            {/* Structure Navigation */}
+            <div className="flex items-center space-x-6">
+              {structureNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+                      isActive ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            
+            {/* Separator */}
+            <div className="h-4 w-px bg-border"></div>
+            
+            {/* Action Navigation */}
+            <div className="flex items-center space-x-6">
+              {actionNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+                      isActive ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
         </div>
         
