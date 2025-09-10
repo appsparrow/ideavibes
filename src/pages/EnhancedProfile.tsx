@@ -358,9 +358,7 @@ function EnhancedProfile() {
           </div>
         </CardContent>
       </Card>
-      )}
-      </div>
-    </Layout>
+    </div>
   );
 }
 

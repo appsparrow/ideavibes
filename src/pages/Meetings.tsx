@@ -199,6 +199,23 @@ function Meetings() {
     }
   };
 
+  const generateAINotes = async (meetingId: string) => {
+    try {
+      toast.info('Generating AI summary...');
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes', {
+        body: { meetingId }
+      });
+
+      if (error) throw error;
+
+      toast.success('AI summary generated successfully');
+      fetchMeetings(); // Refresh to show updated meeting with AI summary
+    } catch (error) {
+      console.error('Error generating AI notes:', error);
+      toast.error('Failed to generate AI summary');
+    }
+  };
+
   if (!selectedGroupId) {
     return (
       <div className="container mx-auto py-8">
@@ -214,7 +231,8 @@ function Meetings() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <Layout>
+      <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Meetings</h1>
@@ -491,6 +509,7 @@ function Meetings() {
             </Card>
           )}
         </div>
+      </div>
       </div>
     </Layout>
   );
