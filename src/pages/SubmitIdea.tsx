@@ -5,7 +5,7 @@ import { useGroupContext } from '@/hooks/useGroupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -221,13 +221,11 @@ const SubmitIdea = () => {
                       {aiLoading ? 'Analyzing...' : 'AI Insights'}
                     </Button>
                   </div>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe the investment opportunity, market potential, risks, competitive landscape, and why this is a good investment..."
+                  <RichTextEditor
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-32"
-                    required
+                    onChange={setDescription}
+                    placeholder="Describe the investment opportunity, market potential, risks, competitive landscape, and why this is a good investment..."
+                    className="min-h-[200px]"
                   />
                   <p className="text-sm text-muted-foreground">
                     Include details about the opportunity, market size, competitive advantages, potential risks, and expected returns.
