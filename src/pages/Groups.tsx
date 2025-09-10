@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Copy, Plus, ExternalLink, Settings, Calendar } from 'lucide-react';
+import { Users, Copy, Plus, ExternalLink, Settings, Calendar, Phone, Mail } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/layout/Header';
 import CreateGroupDialog from '@/components/CreateGroupDialog';
 import JoinGroupForm from '@/components/JoinGroupForm';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Group {
   id: string;
@@ -34,6 +35,13 @@ interface GroupMember {
   profiles: {
     name: string;
     email: string;
+    first_name: string | null;
+    last_name: string | null;
+    phone: string | null;
+    profile_photo_url: string | null;
+    bio: string | null;
+    expertise_tags: string[] | null;
+    skills: string[] | null;
   };
 }
 
@@ -119,13 +127,33 @@ const Groups = () => {
         (membersData || []).map(async (member) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('name, email')
+            .select(`
+              name, 
+              email, 
+              first_name, 
+              last_name, 
+              phone, 
+              profile_photo_url, 
+              bio, 
+              expertise_tags, 
+              skills
+            `)
             .eq('id', member.user_id)
             .maybeSingle();
 
           return {
             ...member,
-            profiles: profile || { name: 'Unknown', email: 'Unknown' }
+            profiles: profile || { 
+              name: 'Unknown', 
+              email: 'Unknown',
+              first_name: null,
+              last_name: null,
+              phone: null,
+              profile_photo_url: null,
+              bio: null,
+              expertise_tags: null,
+              skills: null
+            }
           };
         })
       );
@@ -419,29 +447,117 @@ const Groups = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            {groupMembers.map((member) => (
-                              <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                <div>
-                                  <p className="font-medium">{member.profiles.name}</p>
-                                  <p className="text-sm text-muted-foreground">{member.profiles.email}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                                    {member.role}
-                                  </Badge>
-                                  {(isAdmin || isModerator) && selectedGroup.member_role === 'admin' && member.user_id !== user?.id && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeMember(member.id)}
-                                    >
-                                      Remove
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {groupMembers.map((member) => {
+                              const displayName = member.profiles.first_name && member.profiles.last_name 
+                                ? `${member.profiles.first_name} ${member.profiles.last_name}`
+                                : member.profiles.name;
+                              
+                              const initials = displayName
+                                .split(' ')
+                                .map(n => n[0])
+                                .join('')
+                                .toUpperCase()
+                                .slice(0, 2);
+
+                              const shortBio = member.profiles.bio 
+                                ? member.profiles.bio.length > 60 
+                                  ? `${member.profiles.bio.slice(0, 60)}...`
+                                  : member.profiles.bio
+                                : null;
+
+                              return (
+                                <Card key={member.id} className="relative">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-start gap-3">
+                                      <Avatar className="h-12 w-12">
+                                        <AvatarImage 
+                                          src={member.profiles.profile_photo_url || undefined} 
+                                          alt={displayName}
+                                        />
+                                        <AvatarFallback className="bg-primary/10 text-primary">
+                                          {initials}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <h4 className="font-semibold text-sm truncate">{displayName}</h4>
+                                          <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="ml-2">
+                                            {member.role}
+                                          </Badge>
+                                        </div>
+                                        
+                                        <div className="space-y-1 mb-2">
+                                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Mail className="h-3 w-3" />
+                                            <span className="truncate">{member.profiles.email}</span>
+                                          </div>
+                                          {member.profiles.phone && (
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                              <Phone className="h-3 w-3" />
+                                              <span>{member.profiles.phone}</span>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {shortBio && (
+                                          <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+                                            {shortBio}
+                                          </p>
+                                        )}
+
+                                        {/* Expertise and Skills Tags */}
+                                        <div className="space-y-1">
+                                          {member.profiles.expertise_tags && member.profiles.expertise_tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                              {member.profiles.expertise_tags.slice(0, 3).map((tag, index) => (
+                                                <Badge key={index} variant="outline" className="text-xs py-0 px-1.5 h-5">
+                                                  {tag}
+                                                </Badge>
+                                              ))}
+                                              {member.profiles.expertise_tags.length > 3 && (
+                                                <Badge variant="outline" className="text-xs py-0 px-1.5 h-5">
+                                                  +{member.profiles.expertise_tags.length - 3}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          )}
+                                          {member.profiles.skills && member.profiles.skills.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                              {member.profiles.skills.slice(0, 2).map((skill, index) => (
+                                                <Badge key={index} variant="secondary" className="text-xs py-0 px-1.5 h-5">
+                                                  {skill}
+                                                </Badge>
+                                              ))}
+                                              {member.profiles.skills.length > 2 && (
+                                                <Badge variant="secondary" className="text-xs py-0 px-1.5 h-5">
+                                                  +{member.profiles.skills.length - 2}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Action buttons */}
+                                    {(isAdmin || isModerator) && selectedGroup.member_role === 'admin' && member.user_id !== user?.id && (
+                                      <div className="absolute top-2 right-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeMember(member.id)}
+                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                        >
+                                          ✕
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
