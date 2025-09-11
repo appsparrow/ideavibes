@@ -11,6 +11,7 @@ import { Plus, MessageSquare, TrendingUp, Users, Calendar } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import GroupSelector from '@/components/GroupSelector';
 import { useToast } from '@/hooks/use-toast';
+import { RichTextDisplay } from '@/components/ui/rich-text-display';
 
 interface Idea {
   id: string;
@@ -190,7 +191,7 @@ const Ideas = () => {
           </div>
         </div>
         <CardDescription className="line-clamp-2">
-          {idea.description}
+          <RichTextDisplay content={idea.description} className="text-sm" />
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
@@ -241,30 +242,33 @@ const Ideas = () => {
             />
           </div>
         ) : (
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold">Investment Ideas</h1>
-                {selectedGroupName ? (
-                  <Badge variant="outline" className="text-sm">
-                    {selectedGroupName}
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-sm">All Groups</Badge>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowGroupSelector(true)}
-                >
-                  Switch Workspace
-                </Button>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 md:mb-8">
+            <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">Investment Ideas</h1>
+                <div className="flex items-center gap-2">
+                  {selectedGroupName ? (
+                    <Badge variant="outline" className="text-xs sm:text-sm">
+                      {selectedGroupName}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs sm:text-sm">All Groups</Badge>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowGroupSelector(true)}
+                    className="text-xs sm:text-sm"
+                  >
+                    Switch Workspace
+                  </Button>
+                </div>
               </div>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Collaborative deal flow and idea evaluation pipeline
               </p>
             </div>
-            <Button asChild>
+            <Button asChild className="w-full sm:w-auto">
               <Link to="/submit-idea">
                 <Plus className="mr-2 h-4 w-4" />
                 Submit Idea
@@ -274,16 +278,16 @@ const Ideas = () => {
         )}
 
         <Tabs defaultValue="all" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">All Ideas ({ideas.length})</TabsTrigger>
-            <TabsTrigger value="proposed">Proposed ({filterIdeasByStatus('proposed').length})</TabsTrigger>
-            <TabsTrigger value="under_review">Under Review ({filterIdeasByStatus('under_review').length})</TabsTrigger>
-            <TabsTrigger value="validated">Validated ({filterIdeasByStatus('validated').length})</TabsTrigger>
-            <TabsTrigger value="investment_ready">Investment Ready ({filterIdeasByStatus('investment_ready').length})</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1">
+            <TabsTrigger value="all" className="text-xs md:text-sm">All ({ideas.length})</TabsTrigger>
+            <TabsTrigger value="proposed" className="text-xs md:text-sm">Proposed ({filterIdeasByStatus('proposed').length})</TabsTrigger>
+            <TabsTrigger value="under_review" className="text-xs md:text-sm">Review ({filterIdeasByStatus('under_review').length})</TabsTrigger>
+            <TabsTrigger value="validated" className="text-xs md:text-sm">Valid ({filterIdeasByStatus('validated').length})</TabsTrigger>
+            <TabsTrigger value="investment_ready" className="text-xs md:text-sm">Ready ({filterIdeasByStatus('investment_ready').length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ideas.map((idea) => (
                 <IdeaCard key={idea.id} idea={idea} />
               ))}

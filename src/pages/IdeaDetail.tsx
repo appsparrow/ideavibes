@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextDisplay } from '@/components/ui/rich-text-display';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -368,9 +369,9 @@ const IdeaDetail = () => {
             </Button>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               {/* Idea Overview */}
               <Card>
                 <CardHeader>
@@ -407,9 +408,7 @@ const IdeaDetail = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none">
-                    <p className="whitespace-pre-wrap">{idea.description}</p>
-                  </div>
+                  <RichTextDisplay content={idea.description} />
                   {idea.ai_summary && (
                     <div className="mt-6 p-4 bg-muted rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
@@ -478,7 +477,7 @@ const IdeaDetail = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Voting */}
               <Card>
                 <CardHeader>

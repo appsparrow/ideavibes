@@ -12,7 +12,10 @@ import { Plus, Calendar, Clock, Users, FileText, CheckSquare, MessageSquare, Bot
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { RichTextDisplay } from '@/components/ui/rich-text-display';
 import Layout from '@/components/layout/Layout';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Meeting {
   id: string;
@@ -42,11 +45,13 @@ interface MeetingNote {
 function Meetings() {
   const { user, isAdmin, isModerator } = useAuth();
   const { selectedGroupId, selectedGroupName } = useGroupContext();
+  const isMobile = useIsMobile();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [meetingNotes, setMeetingNotes] = useState<MeetingNote[]>([]);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAddingNote, setIsAddingNote] = useState(false);
 
   // Form states
   const [isCreating, setIsCreating] = useState(false);
@@ -233,15 +238,15 @@ function Meetings() {
   return (
     <Layout>
       <div className="container mx-auto py-8 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Meetings</h1>
-          <p className="text-muted-foreground">Group: {selectedGroupName}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Meetings</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Group: {selectedGroupName}</p>
         </div>
         {(isAdmin || isModerator) && (
           <Dialog open={isCreating} onOpenChange={setIsCreating}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule Meeting
               </Button>
@@ -273,22 +278,20 @@ function Meetings() {
                 </div>
                 <div>
                   <Label htmlFor="agenda">Agenda</Label>
-                  <Textarea
-                    id="agenda"
-                    placeholder="Meeting agenda..."
+                  <RichTextEditor
                     value={formData.agenda}
-                    onChange={(e) => setFormData({ ...formData, agenda: e.target.value })}
-                    rows={4}
+                    onChange={(value) => setFormData({ ...formData, agenda: value })}
+                    placeholder="Meeting agenda..."
+                    className="min-h-[120px]"
                   />
                 </div>
                 <div>
                   <Label htmlFor="notes">Initial Notes</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Initial meeting notes..."
+                  <RichTextEditor
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
+                    onChange={(value) => setFormData({ ...formData, notes: value })}
+                    placeholder="Initial meeting notes..."
+                    className="min-h-[100px]"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
@@ -305,9 +308,9 @@ function Meetings() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${isMobile ? 'space-y-4' : 'lg:grid-cols-3'} gap-4 md:gap-6`}>
         {/* Meetings List */}
-        <div className="lg:col-span-1">
+        <div className={`${!isMobile ? 'lg:col-span-1' : ''} ${isMobile && selectedMeeting ? 'hidden' : ''}`}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -356,16 +359,25 @@ function Meetings() {
         </div>
 
         {/* Meeting Details */}
-        <div className="lg:col-span-2">
+        <div className={`${!isMobile ? 'lg:col-span-2' : ''} ${isMobile && !selectedMeeting ? 'hidden' : ''}`}>
           {selectedMeeting ? (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
+              {isMobile && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setSelectedMeeting(null)}
+                  className="mb-4"
+                >
+                  ← Back to Meetings
+                </Button>
+              )}
               {/* Meeting Info */}
               <Card>
                 <CardHeader>
                   <CardTitle>Meeting Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium">Date</Label>
                       <p>{new Date(selectedMeeting.date).toLocaleDateString()}</p>
@@ -377,12 +389,12 @@ function Meetings() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Agenda</Label>
-                    <p className="mt-1">{selectedMeeting.agenda}</p>
+                    <RichTextDisplay content={selectedMeeting.agenda} className="mt-1" />
                   </div>
                   {selectedMeeting.notes && (
                     <div>
                       <Label className="text-sm font-medium">Initial Notes</Label>
-                      <p className="mt-1">{selectedMeeting.notes}</p>
+                      <RichTextDisplay content={selectedMeeting.notes} className="mt-1" />
                     </div>
                   )}
                 </CardContent>
@@ -391,17 +403,20 @@ function Meetings() {
               {/* Collaborative Notes */}
               <Card>
                 <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <CardTitle className="flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
                       Collaborative Notes
+                      {selectedMeeting.status === 'in_progress' && (
+                        <Badge variant="secondary" className="text-xs">Live</Badge>
+                      )}
                     </CardTitle>
                     {(isAdmin || isModerator) && meetingNotes.length > 0 && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => generateAINotes(selectedMeeting.id)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 w-full sm:w-auto"
                       >
                         <Bot className="h-4 w-4" />
                         Generate AI Summary
@@ -410,18 +425,18 @@ function Meetings() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                  <div className="space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
                     {meetingNotes.map((note) => (
-                      <div key={note.id} className="flex gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>
+                      <div key={note.id} className="flex gap-2 sm:gap-3 p-3 bg-muted/50 rounded-lg">
+                        <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
+                          <AvatarFallback className="text-xs">
                             {((note.profiles?.first_name || note.profiles?.name || 'U').charAt(0) +
                               (note.profiles?.last_name || '').charAt(0)).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <span className="text-xs sm:text-sm font-medium truncate">
                               {note.profiles?.first_name && note.profiles?.last_name
                                 ? `${note.profiles.first_name} ${note.profiles.last_name}`
                                 : note.profiles?.name || 'Unknown User'}
@@ -430,22 +445,56 @@ function Meetings() {
                               {new Date(note.created_at).toLocaleString()}
                             </span>
                           </div>
-                          <p className="text-sm mt-1">{note.content}</p>
+                          <RichTextDisplay content={note.content} className="text-xs sm:text-sm mt-1" />
                         </div>
                       </div>
                     ))}
+                    {meetingNotes.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8 text-sm">
+                        No notes yet. {selectedMeeting.status === 'in_progress' ? 'Start adding collaborative notes!' : 'Add the first note to get started.'}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Textarea
-                      placeholder="Add a note..."
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      rows={2}
-                      className="flex-1"
-                    />
-                    <Button onClick={addNote} disabled={!newNote.trim()}>
-                      Add Note
-                    </Button>
+                  
+                  {/* Add Note Section */}
+                  <div className="border-t pt-4">
+                    {!isAddingNote ? (
+                      <Button 
+                        onClick={() => setIsAddingNote(true)} 
+                        className="w-full"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Note
+                      </Button>
+                    ) : (
+                      <div className="space-y-3">
+                        <RichTextEditor
+                          value={newNote}
+                          onChange={setNewNote}
+                          placeholder="Add your meeting note..."
+                          className="min-h-[100px]"
+                        />
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={addNote} 
+                            disabled={!newNote.trim()}
+                            className="flex-1"
+                          >
+                            Add Note
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setIsAddingNote(false);
+                              setNewNote('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
