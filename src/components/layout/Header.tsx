@@ -1,13 +1,19 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useGroupContext } from '@/hooks/useGroupContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Home, TrendingUp, Plus, Users2, Calendar, UserCircle } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
+import { LogOut, User, Home, TrendingUp, Plus, Users2, Calendar, UserCircle, Menu, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const { selectedGroupName } = useGroupContext();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,84 +35,97 @@ const Header = () => {
     { href: '/submit-idea', label: 'Submit', icon: Plus },
   ];
 
+  const renderNavItems = () => (
+    <>
+      {/* Core Navigation */}
+      {coreNavItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = location.pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            to={item.href}
+            className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+              isActive ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+      
+      {/* Structure Navigation */}
+      {structureNavItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = location.pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            to={item.href}
+            className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+              isActive ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+      
+      {/* Action Navigation */}
+      {actionNavItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = location.pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            to={item.href}
+            className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
+              isActive ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </>
+  );
+
   return (
     <header className="border-b bg-background">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center space-x-8">
-          <Link to="/" className="text-2xl font-bold text-primary">
+        <div className="flex items-center space-x-4">
+          <Link to="/" className="text-xl sm:text-2xl font-bold text-primary">
             IdeaFlow
           </Link>
           
-          <nav className="hidden md:flex items-center space-x-8">
-            {/* Core Navigation */}
-            <div className="flex items-center space-x-6">
-              {coreNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-            
-            {/* Separator */}
-            <div className="h-4 w-px bg-border"></div>
-            
-            {/* Structure Navigation */}
-            <div className="flex items-center space-x-6">
-              {structureNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-            
-            {/* Separator */}
-            <div className="h-4 w-px bg-border"></div>
-            
-            {/* Action Navigation */}
-            <div className="flex items-center space-x-6">
-              {actionNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+          {/* Workspace indicator */}
+          {selectedGroupName && (
+            <Link to="/" className="flex items-center space-x-2 text-sm bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors">
+              <Building2 className="h-3 w-3" />
+              <span className="max-w-32 truncate">{selectedGroupName}</span>
+            </Link>
+          )}
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6 ml-8">
+            {renderNavItems()}
           </nav>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          {/* Mobile Submit Button */}
+          {isMobile && (
+            <Button asChild size="sm" className="px-2">
+              <Link to="/submit-idea">
+                <Plus className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          
+          {/* User Avatar */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -136,6 +155,22 @@ const Header = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+          
+          {/* Mobile Menu */}
+          {isMobile && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64">
+                <nav className="flex flex-col space-y-4 mt-8">
+                  {renderNavItems()}
+                </nav>
+              </SheetContent>
+            </Sheet>
           )}
         </div>
       </div>

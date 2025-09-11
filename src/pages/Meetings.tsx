@@ -76,6 +76,19 @@ function Meetings() {
 
   const fetchMeetings = async () => {
     try {
+      // Check if user is member of the selected group
+      const { data: membershipData } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user!.id)
+        .eq('group_id', selectedGroupId);
+
+      if (!membershipData || membershipData.length === 0) {
+        setMeetings([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('meetings')
         .select('*')
@@ -285,15 +298,16 @@ function Meetings() {
                     className="min-h-[120px]"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="notes">Initial Notes</Label>
-                  <RichTextEditor
-                    value={formData.notes}
-                    onChange={(value) => setFormData({ ...formData, notes: value })}
-                    placeholder="Initial meeting notes..."
-                    className="min-h-[100px]"
-                  />
-                </div>
+                  <div>
+                    <Label htmlFor="notes">Initial Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Initial meeting notes..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsCreating(false)}>
                     Cancel
@@ -392,10 +406,10 @@ function Meetings() {
                     <RichTextDisplay content={selectedMeeting.agenda} className="mt-1" />
                   </div>
                   {selectedMeeting.notes && (
-                    <div>
-                      <Label className="text-sm font-medium">Initial Notes</Label>
-                      <RichTextDisplay content={selectedMeeting.notes} className="mt-1" />
-                    </div>
+                  <div>
+                    <Label className="text-sm font-medium">Initial Notes</Label>
+                    <p className="mt-1 text-sm whitespace-pre-wrap">{selectedMeeting.notes}</p>
+                  </div>
                   )}
                 </CardContent>
               </Card>
@@ -445,7 +459,7 @@ function Meetings() {
                               {new Date(note.created_at).toLocaleString()}
                             </span>
                           </div>
-                          <RichTextDisplay content={note.content} className="text-xs sm:text-sm mt-1" />
+                          <p className="text-xs sm:text-sm mt-1 whitespace-pre-wrap">{note.content}</p>
                         </div>
                       </div>
                     ))}
@@ -468,19 +482,21 @@ function Meetings() {
                         Add Note
                       </Button>
                     ) : (
-                      <div className="space-y-3">
-                        <RichTextEditor
+                      <div className="space-y-2">
+                        <Textarea
                           value={newNote}
-                          onChange={setNewNote}
+                          onChange={(e) => setNewNote(e.target.value)}
                           placeholder="Add your meeting note..."
-                          className="min-h-[100px]"
+                          className="min-h-[80px] text-sm"
                         />
                         <div className="flex gap-2">
                           <Button 
                             onClick={addNote} 
                             disabled={!newNote.trim()}
-                            className="flex-1"
+                            size="sm"
+                            className="flex-1 sm:flex-none"
                           >
+                            <Plus className="h-4 w-4 mr-2" />
                             Add Note
                           </Button>
                           <Button 
@@ -489,6 +505,8 @@ function Meetings() {
                               setIsAddingNote(false);
                               setNewNote('');
                             }}
+                            size="sm"
+                            className="flex-1 sm:flex-none"
                           >
                             Cancel
                           </Button>
