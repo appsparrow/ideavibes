@@ -284,7 +284,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">Investment Dashboard</h1>
+                  <h1 className="text-3xl font-bold">Idea Board</h1>
                   {selectedGroupName ? (
                     <Badge variant="outline" className="text-sm">
                       {selectedGroupName}
