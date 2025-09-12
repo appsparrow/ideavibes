@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Calendar, Clock, Users, FileText, CheckSquare, MessageSquare, Bot } from 'lucide-react';
+import { Plus, Calendar, Clock, Users, CheckSquare, MessageSquare, Bot, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { RichTextDisplay } from '@/components/ui/rich-text-display';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/layout/Layout';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -52,6 +53,7 @@ function Meetings() {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [activeTab, setActiveTab] = useState('agenda');
 
   // Form states
   const [isCreating, setIsCreating] = useState(false);
@@ -181,6 +183,7 @@ function Meetings() {
       if (error) throw error;
 
       setNewNote('');
+      setIsAddingNote(false);
       fetchMeetingNotes(selectedMeeting.id);
       toast.success('Note added successfully');
     } catch (error) {
@@ -375,196 +378,222 @@ function Meetings() {
         {/* Meeting Details */}
         <div className={`${!isMobile ? 'lg:col-span-2' : ''} ${isMobile && !selectedMeeting ? 'hidden' : ''}`}>
           {selectedMeeting ? (
-            <div className="space-y-4 md:space-y-6">
+            <div className="h-full">
               {isMobile && (
                 <Button 
                   variant="ghost" 
                   onClick={() => setSelectedMeeting(null)}
                   className="mb-4"
                 >
-                  ← Back to Meetings
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Meetings
                 </Button>
               )}
-              {/* Meeting Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Meeting Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium">Date</Label>
-                      <p>{new Date(selectedMeeting.date).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Time</Label>
-                      <p>{selectedMeeting.meeting_time || 'Not set'}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Agenda</Label>
-                    <RichTextDisplay content={selectedMeeting.agenda} className="mt-1" />
-                  </div>
-                  {selectedMeeting.notes && (
-                  <div>
-                    <Label className="text-sm font-medium">Initial Notes</Label>
-                    <p className="mt-1 text-sm whitespace-pre-wrap">{selectedMeeting.notes}</p>
-                  </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Collaborative Notes */}
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5" />
-                      Collaborative Notes
-                      {selectedMeeting.status === 'in_progress' && (
-                        <Badge variant="secondary" className="text-xs">Live</Badge>
-                      )}
-                    </CardTitle>
-                    {(isAdmin || isModerator) && meetingNotes.length > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => generateAINotes(selectedMeeting.id)}
-                        className="flex items-center gap-2 w-full sm:w-auto"
-                      >
-                        <Bot className="h-4 w-4" />
-                        Generate AI Summary
-                      </Button>
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="agenda">Agenda</TabsTrigger>
+                  <TabsTrigger value="notes" className="relative">
+                    Notes
+                    {selectedMeeting.status === 'in_progress' && (
+                      <Badge variant="secondary" className="ml-2 text-xs">Live</Badge>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
-                    {meetingNotes.map((note) => (
-                      <div key={note.id} className="flex gap-2 sm:gap-3 p-3 bg-muted/50 rounded-lg">
-                        <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                          <AvatarFallback className="text-xs">
-                            {((note.profiles?.first_name || note.profiles?.name || 'U').charAt(0) +
-                              (note.profiles?.last_name || '').charAt(0)).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                            <span className="text-xs sm:text-sm font-medium truncate">
-                              {note.profiles?.first_name && note.profiles?.last_name
-                                ? `${note.profiles.first_name} ${note.profiles.last_name}`
-                                : note.profiles?.name || 'Unknown User'}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(note.created_at).toLocaleString()}
-                            </span>
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="agenda" className="flex-1 mt-4">
+                  <div className="space-y-4">
+                    {/* Meeting Info */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Meeting Details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium">Date</Label>
+                            <p>{new Date(selectedMeeting.date).toLocaleDateString()}</p>
                           </div>
-                          <p className="text-xs sm:text-sm mt-1 whitespace-pre-wrap">{note.content}</p>
+                          <div>
+                            <Label className="text-sm font-medium">Time</Label>
+                            <p>{selectedMeeting.meeting_time || 'Not set'}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {meetingNotes.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8 text-sm">
-                        No notes yet. {selectedMeeting.status === 'in_progress' ? 'Start adding collaborative notes!' : 'Add the first note to get started.'}
-                      </p>
-                    )}
+                        <div>
+                          <Label className="text-sm font-medium">Agenda</Label>
+                          <RichTextDisplay content={selectedMeeting.agenda} className="mt-1" />
+                        </div>
+                        {selectedMeeting.notes && (
+                        <div>
+                          <Label className="text-sm font-medium">Initial Notes</Label>
+                          <p className="mt-1 text-sm whitespace-pre-wrap">{selectedMeeting.notes}</p>
+                        </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Action Items */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckSquare className="h-5 w-5" />
+                          Action Items
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          {selectedMeeting.action_items?.map((item: any, index: number) => (
+                            <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                              <input
+                                type="checkbox"
+                                checked={item.completed}
+                                className="rounded"
+                                readOnly
+                              />
+                              <span className={item.completed ? 'line-through text-muted-foreground' : ''}>
+                                {item.text}
+                              </span>
+                            </div>
+                          )) || <p className="text-muted-foreground">No action items yet</p>}
+                        </div>
+                        {(isAdmin || isModerator) && (
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Add action item..."
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  addActionItem(e.currentTarget.value);
+                                  e.currentTarget.value = '';
+                                }
+                              }}
+                            />
+                            <Button
+                              onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                addActionItem(input.value);
+                                input.value = '';
+                              }}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
-                  
-                  {/* Add Note Section */}
-                  <div className="border-t pt-4">
-                    {!isAddingNote ? (
-                      <Button 
-                        onClick={() => setIsAddingNote(true)} 
-                        className="w-full"
-                        size="sm"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Note
-                      </Button>
-                    ) : (
-                      <div className="space-y-2">
-                        <Textarea
-                          value={newNote}
-                          onChange={(e) => setNewNote(e.target.value)}
-                          placeholder="Add your meeting note..."
-                          className="min-h-[80px] text-sm"
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={addNote} 
-                            disabled={!newNote.trim()}
+                </TabsContent>
+                
+                <TabsContent value="notes" className="flex-1 mt-4">
+                  <Card className="h-full flex flex-col">
+                    <CardHeader className="flex-shrink-0">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5" />
+                          Collaborative Notes
+                        </CardTitle>
+                        {(isAdmin || isModerator) && meetingNotes.length > 0 && (
+                          <Button
                             size="sm"
-                            className="flex-1 sm:flex-none"
+                            variant="outline"
+                            onClick={() => generateAINotes(selectedMeeting.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Bot className="h-4 w-4" />
+                            AI Summary
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col p-0">
+                      {/* Chat-like messages */}
+                      <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ height: isMobile ? 'calc(100vh - 300px)' : '400px' }}>
+                        {meetingNotes.map((note) => (
+                          <div key={note.id} className="flex gap-3">
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                              <AvatarFallback className="text-xs">
+                                {((note.profiles?.first_name || note.profiles?.name || 'U').charAt(0) +
+                                  (note.profiles?.last_name || '').charAt(0)).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium">
+                                  {note.profiles?.first_name && note.profiles?.last_name
+                                    ? `${note.profiles.first_name} ${note.profiles.last_name}`
+                                    : note.profiles?.name || 'Unknown User'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(note.created_at).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              <div className="bg-muted/30 p-3 rounded-lg">
+                                <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {meetingNotes.length === 0 && (
+                          <div className="text-center text-muted-foreground py-8">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No notes yet. {selectedMeeting.status === 'in_progress' ? 'Start the conversation!' : 'Add the first note to get started.'}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Input area */}
+                      <div className="border-t p-4 bg-background">
+                        {!isAddingNote ? (
+                          <Button 
+                            onClick={() => setIsAddingNote(true)} 
+                            className="w-full"
+                            size="sm"
                           >
                             <Plus className="h-4 w-4 mr-2" />
                             Add Note
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => {
-                              setIsAddingNote(false);
-                              setNewNote('');
-                            }}
-                            size="sm"
-                            className="flex-1 sm:flex-none"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={newNote}
+                              onChange={(e) => setNewNote(e.target.value)}
+                              placeholder="Type your note..."
+                              className="min-h-[60px] resize-none"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  if (newNote.trim()) {
+                                    addNote();
+                                  }
+                                }
+                              }}
+                            />
+                            <div className="flex gap-2">
+                              <Button 
+                                onClick={addNote} 
+                                disabled={!newNote.trim()}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                Send
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                  setIsAddingNote(false);
+                                  setNewNote('');
+                                }}
+                                size="sm"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Action Items */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckSquare className="h-5 w-5" />
-                    Action Items
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    {selectedMeeting.action_items?.map((item: any, index: number) => (
-                      <div key={index} className="flex items-center gap-2 p-2 border rounded">
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          className="rounded"
-                          readOnly
-                        />
-                        <span className={item.completed ? 'line-through text-muted-foreground' : ''}>
-                          {item.text}
-                        </span>
-                      </div>
-                    )) || <p className="text-muted-foreground">No action items yet</p>}
-                  </div>
-                  {(isAdmin || isModerator) && (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add action item..."
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            addActionItem(e.currentTarget.value);
-                            e.currentTarget.value = '';
-                          }
-                        }}
-                      />
-                      <Button
-                        onClick={(e) => {
-                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                          addActionItem(input.value);
-                          input.value = '';
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           ) : (
             <Card>

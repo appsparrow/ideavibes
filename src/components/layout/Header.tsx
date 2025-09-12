@@ -19,62 +19,17 @@ const Header = () => {
     await signOut();
   };
 
-  // Core navigation items organized by importance
-  const coreNavItems = [
+  // Simplified navigation items
+  const navItems = [
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/ideas', label: 'Ideas', icon: TrendingUp },
     { href: '/meetings', label: 'Meetings', icon: Calendar },
-  ];
-
-  const structureNavItems = [
-    { href: '/groups', label: 'Groups', icon: Users2 },
-    { href: '/users', label: 'Users', icon: User },
-  ];
-
-  const actionNavItems = [
     { href: '/submit-idea', label: 'Submit', icon: Plus },
   ];
 
   const renderNavItems = () => (
     <>
-      {/* Core Navigation */}
-      {coreNavItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = location.pathname === item.href;
-        return (
-          <Link
-            key={item.href}
-            to={item.href}
-            className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
-              isActive ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-      
-      {/* Structure Navigation */}
-      {structureNavItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = location.pathname === item.href;
-        return (
-          <Link
-            key={item.href}
-            to={item.href}
-            className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary ${
-              isActive ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-      
-      {/* Action Navigation */}
-      {actionNavItems.map((item) => {
+      {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location.pathname === item.href;
         return (
@@ -103,9 +58,9 @@ const Header = () => {
           
           {/* Workspace indicator */}
           {selectedGroupName && (
-            <Link to="/" className="flex items-center space-x-2 text-sm bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors">
-              <Building2 className="h-3 w-3" />
-              <span className="max-w-32 truncate">{selectedGroupName}</span>
+            <Link to="/groups" className="flex items-center space-x-2 text-sm bg-muted hover:bg-muted/80 px-3 py-1.5 rounded-md transition-colors">
+              <Building2 className="h-4 w-4" />
+              <span className="max-w-32 truncate font-medium">{selectedGroupName}</span>
             </Link>
           )}
           
