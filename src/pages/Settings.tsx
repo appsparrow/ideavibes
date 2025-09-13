@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Settings as SettingsIcon,
   User,
@@ -36,6 +37,8 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -158,25 +161,28 @@ const Settings = () => {
     }
   };
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+  const deleteUser = async () => {
+    if (!userToDelete) return;
 
+    setIsDeletingUser(true);
     try {
       // Note: In a real app, you'd want to handle this through a proper user deletion process
       // that cleans up all related data and possibly uses Supabase's auth admin functions
       toast({
         title: "User deletion",
-        description: "User deletion would be handled through admin authentication API.",
+        description: `User deletion for ${userToDelete.name} would be handled through admin authentication API.`,
         variant: "destructive",
       });
+      
+      setUserToDelete(null);
     } catch (error: any) {
       toast({
         title: "Error deleting user",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsDeletingUser(false);
     }
   };
 
@@ -350,7 +356,7 @@ const Settings = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => deleteUser(userProfile.id)}
+                              onClick={() => setUserToDelete(userProfile)}
                               disabled={userProfile.id === user?.id}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -497,6 +503,36 @@ const Settings = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete <strong>{userToDelete?.name}</strong>? 
+              This action cannot be undone and will remove all their data, ideas, and group memberships.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={deleteUser} 
+              disabled={isDeletingUser}
+              className="flex-1"
+            >
+              {isDeletingUser ? "Deleting..." : "Delete Permanently"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setUserToDelete(null)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

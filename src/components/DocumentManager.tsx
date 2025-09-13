@@ -52,6 +52,8 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
     url: '',
     description: ''
   });
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -180,28 +182,33 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
     }
   };
 
-  const deleteDocument = async (docId: string) => {
-    if (!confirm('Are you sure you want to remove this document?')) return;
+  const deleteDocument = async () => {
+    if (!documentToDelete) return;
 
+    setIsDeletingDocument(true);
     try {
       const { error } = await supabase
         .from('documents')
         .delete()
-        .eq('id', docId);
+        .eq('id', documentToDelete.id);
 
       if (error) throw error;
 
       fetchDocuments();
       toast({
         title: "Document removed",
-        description: "Document has been removed from this idea.",
+        description: `${documentToDelete.title} has been removed from this idea.`,
       });
+      
+      setDocumentToDelete(null);
     } catch (error: any) {
       toast({
         title: "Error removing document",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsDeletingDocument(false);
     }
   };
 
@@ -413,7 +420,7 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteDocument(doc.id)}
+                          onClick={() => setDocumentToDelete(doc)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -437,6 +444,36 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
           </div>
         )}
       </CardContent>
+
+      {/* Delete Document Confirmation Dialog */}
+      <Dialog open={!!documentToDelete} onOpenChange={() => setDocumentToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Document</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove <strong>{documentToDelete?.title}</strong> from this idea? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={deleteDocument} 
+              disabled={isDeletingDocument}
+              className="flex-1"
+            >
+              {isDeletingDocument ? "Removing..." : "Remove Document"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setDocumentToDelete(null)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -55,6 +55,8 @@ const Groups = () => {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [showAllGroups, setShowAllGroups] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<GroupMember | null>(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -210,29 +212,37 @@ const Groups = () => {
     }
   };
 
-  const removeMember = async (memberId: string) => {
+  const removeMember = async () => {
+    if (!memberToRemove) return;
+
+    setIsRemovingMember(true);
     try {
       const { error } = await supabase
         .from('group_members')
         .delete()
-        .eq('id', memberId);
+        .eq('id', memberToRemove.id);
 
       if (error) throw error;
 
       toast({
         title: "Member removed successfully",
+        description: `${memberToRemove.profiles.name} has been removed from the group.`,
       });
 
       if (selectedGroup) {
         fetchGroupMembers(selectedGroup.id);
         fetchGroups(); // Refresh member counts
       }
+      
+      setMemberToRemove(null);
     } catch (error: any) {
       toast({
         title: "Error removing member",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsRemovingMember(false);
     }
   };
 
@@ -548,7 +558,7 @@ const Groups = () => {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => removeMember(member.id)}
+                                          onClick={() => setMemberToRemove(member)}
                                           className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                                         >
                                           ✕
@@ -580,6 +590,36 @@ const Groups = () => {
           </div>
         )}
       </main>
+
+      {/* Remove Member Confirmation Dialog */}
+      <Dialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Member</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove <strong>{memberToRemove?.profiles.name}</strong> from this group? 
+              They will lose access to all group content and will need to be re-invited to join again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={removeMember} 
+              disabled={isRemovingMember}
+              className="flex-1"
+            >
+              {isRemovingMember ? "Removing..." : "Remove Member"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setMemberToRemove(null)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
