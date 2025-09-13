@@ -54,6 +54,7 @@ const Groups = () => {
   const [membersLoading, setMembersLoading] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [showAllGroups, setShowAllGroups] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {

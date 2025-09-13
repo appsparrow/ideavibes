@@ -25,6 +25,8 @@ interface EnhancedProfile {
   skills?: string[];
   investor_type?: string;
   role?: string;
+  subscription_tier?: string | null;
+  subscription_expires_at?: string | null;
 }
 
 function EnhancedProfile() {
@@ -47,7 +49,7 @@ function EnhancedProfile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, subscription_tier, subscription_expires_at')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -156,7 +158,15 @@ function EnhancedProfile() {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Enhanced Profile</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">Enhanced Profile</h1>
+          {profile.subscription_tier === 'pro' && 
+           (!profile.subscription_expires_at || new Date(profile.subscription_expires_at) > new Date()) && (
+            <Badge className="bg-gradient-to-r from-purple-500 to-blue-600 text-white">
+              PRO
+            </Badge>
+          )}
+        </div>
         <Button onClick={updateProfile} disabled={saving}>
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>

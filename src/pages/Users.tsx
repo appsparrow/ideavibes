@@ -201,7 +201,7 @@ const Users = () => {
                             </div>
                           </div>
                         </div>
-                        <CardDescription className="text-xs">
+                        <div className="text-xs text-muted-foreground">
                           <div className="flex items-center gap-1 mb-1">
                             <Mail className="h-3 w-3" />
                             {userProfile.email}
@@ -210,7 +210,7 @@ const Users = () => {
                             <Activity className="h-3 w-3" />
                             {engagement.level} Engagement
                           </div>
-                        </CardDescription>
+                        </div>
                       </CardHeader>
                       <CardContent className="pt-0">
                         <div className="space-y-3">

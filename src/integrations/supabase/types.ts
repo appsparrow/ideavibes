@@ -7,31 +7,26 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
-  }
   public: {
     Tables: {
       comments: {
         Row: {
           content: string
-          created_at: string | null
+          created_at: string
           id: string
           idea_id: string
           user_id: string
         }
         Insert: {
           content: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           idea_id: string
           user_id: string
         }
         Update: {
           content?: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           idea_id?: string
           user_id?: string
@@ -63,7 +58,7 @@ export type Database = {
           id: string
           idea_id: string
           title: string
-          updated_at: string
+          updated_at: string | null
           url: string | null
         }
         Insert: {
@@ -75,7 +70,7 @@ export type Database = {
           id?: string
           idea_id: string
           title: string
-          updated_at?: string
+          updated_at?: string | null
           url?: string | null
         }
         Update: {
@@ -87,7 +82,7 @@ export type Database = {
           id?: string
           idea_id?: string
           title?: string
-          updated_at?: string
+          updated_at?: string | null
           url?: string | null
         }
         Relationships: [
@@ -98,55 +93,65 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      evaluations: {
-        Row: {
-          ai_suggestion: Json | null
-          created_at: string | null
-          feasibility: number | null
-          id: string
-          idea_id: string
-          market_size: number | null
-          novelty: number | null
-          strategic_fit: number | null
-          user_id: string
-        }
-        Insert: {
-          ai_suggestion?: Json | null
-          created_at?: string | null
-          feasibility?: number | null
-          id?: string
-          idea_id: string
-          market_size?: number | null
-          novelty?: number | null
-          strategic_fit?: number | null
-          user_id: string
-        }
-        Update: {
-          ai_suggestion?: Json | null
-          created_at?: string | null
-          feasibility?: number | null
-          id?: string
-          idea_id?: string
-          market_size?: number | null
-          novelty?: number | null
-          strategic_fit?: number | null
-          user_id?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "evaluations_idea_id_fkey"
+            foreignKeyName: "documents_idea_id_fkey"
             columns: ["idea_id"]
             isOneToOne: false
             referencedRelation: "ideas"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      evaluations: {
+        Row: {
+          comments: string | null
+          created_at: string
+          evaluator_id: string
+          id: string
+          idea_id: string
+          investment_required: number | null
+          market_size: number | null
+          rating: number
+          risk_level: number | null
+          time_to_market: number | null
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          evaluator_id: string
+          id?: string
+          idea_id: string
+          investment_required?: number | null
+          market_size?: number | null
+          rating: number
+          risk_level?: number | null
+          time_to_market?: number | null
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          evaluator_id?: string
+          id?: string
+          idea_id?: string
+          investment_required?: number | null
+          market_size?: number | null
+          rating?: number
+          risk_level?: number | null
+          time_to_market?: number | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "evaluations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "evaluations_evaluator_id_fkey"
+            columns: ["evaluator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
             referencedColumns: ["id"]
           },
         ]
@@ -217,47 +222,41 @@ export type Database = {
         Row: {
           ai_opportunity_eval: Json | null
           ai_summary: string | null
-          created_at: string | null
+          created_at: string
           description: string
-          drive_folder_id: string | null
           group_id: string | null
           id: string
-          idea_code: string
-          sector: Database["public"]["Enums"]["idea_sector"] | null
-          status: Database["public"]["Enums"]["idea_status"] | null
+          sector: Database["public"]["Enums"]["idea_sector"]
+          status: Database["public"]["Enums"]["idea_status"]
           submitted_by: string
           title: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           ai_opportunity_eval?: Json | null
           ai_summary?: string | null
-          created_at?: string | null
+          created_at?: string
           description: string
-          drive_folder_id?: string | null
           group_id?: string | null
           id?: string
-          idea_code?: string
-          sector?: Database["public"]["Enums"]["idea_sector"] | null
-          status?: Database["public"]["Enums"]["idea_status"] | null
+          sector?: Database["public"]["Enums"]["idea_sector"]
+          status?: Database["public"]["Enums"]["idea_status"]
           submitted_by: string
           title: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           ai_opportunity_eval?: Json | null
           ai_summary?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string
-          drive_folder_id?: string | null
           group_id?: string | null
           id?: string
-          idea_code?: string
-          sector?: Database["public"]["Enums"]["idea_sector"] | null
-          status?: Database["public"]["Enums"]["idea_status"] | null
+          sector?: Database["public"]["Enums"]["idea_sector"]
+          status?: Database["public"]["Enums"]["idea_status"]
           submitted_by?: string
           title?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -278,28 +277,28 @@ export type Database = {
       }
       investor_interest: {
         Row: {
-          amount_commitment: number | null
-          created_at: string | null
+          created_at: string
           id: string
           idea_id: string
-          interest_type: Database["public"]["Enums"]["investor_type"]
-          user_id: string
+          investor_id: string
+          investment_amount: number | null
+          notes: string | null
         }
         Insert: {
-          amount_commitment?: number | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           idea_id: string
-          interest_type: Database["public"]["Enums"]["investor_type"]
-          user_id: string
+          investor_id: string
+          investment_amount?: number | null
+          notes?: string | null
         }
         Update: {
-          amount_commitment?: number | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           idea_id?: string
-          interest_type?: Database["public"]["Enums"]["investor_type"]
-          user_id?: string
+          investor_id?: string
+          investment_amount?: number | null
+          notes?: string | null
         }
         Relationships: [
           {
@@ -310,8 +309,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "investor_interest_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "investor_interest_investor_id_fkey"
+            columns: ["investor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -324,7 +323,6 @@ export type Database = {
           created_at: string
           id: string
           meeting_id: string
-          updated_at: string
           user_id: string
         }
         Insert: {
@@ -332,7 +330,6 @@ export type Database = {
           created_at?: string
           id?: string
           meeting_id: string
-          updated_at?: string
           user_id: string
         }
         Update: {
@@ -340,7 +337,6 @@ export type Database = {
           created_at?: string
           id?: string
           meeting_id?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -351,47 +347,96 @@ export type Database = {
             referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "meeting_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetup_feedback: {
+        Row: {
+          id: string
+          meetup_id: string
+          responses: Json
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          meetup_id: string
+          responses: Json
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          meetup_id?: string
+          responses?: Json
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetup_feedback_meetup_id_fkey"
+            columns: ["meetup_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetup_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       meetings: {
         Row: {
           action_items: Json | null
-          agenda: string | null
-          created_at: string | null
+          agenda: string
+          ai_summary: string | null
+          created_at: string
           date: string
           group_id: string | null
           id: string
-          ideas_discussed: Json | null
           meeting_time: string | null
-          notes: string | null
+          notes: string
           session_feedback: string | null
-          status: string | null
+          status: string
+          updated_at: string | null
         }
         Insert: {
           action_items?: Json | null
-          agenda?: string | null
-          created_at?: string | null
+          agenda: string
+          ai_summary?: string | null
+          created_at?: string
           date: string
           group_id?: string | null
           id?: string
-          ideas_discussed?: Json | null
           meeting_time?: string | null
-          notes?: string | null
+          notes: string
           session_feedback?: string | null
-          status?: string | null
+          status?: string
+          updated_at?: string | null
         }
         Update: {
           action_items?: Json | null
-          agenda?: string | null
-          created_at?: string | null
+          agenda?: string
+          ai_summary?: string | null
+          created_at?: string
           date?: string
           group_id?: string | null
           id?: string
-          ideas_discussed?: Json | null
           meeting_time?: string | null
-          notes?: string | null
+          notes?: string
           session_feedback?: string | null
-          status?: string | null
+          status?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -405,82 +450,81 @@ export type Database = {
       }
       profiles: {
         Row: {
-          bio: string | null
           created_at: string | null
           email: string
-          expertise_tags: string[] | null
-          first_name: string | null
           id: string
           investor_type: Database["public"]["Enums"]["investor_type"] | null
-          last_name: string | null
           name: string
-          phone: string | null
           profile: string | null
-          profile_photo_url: string | null
           role: Database["public"]["Enums"]["user_role"] | null
-          skills: string[] | null
+          subscription_expires_at: string | null
+          subscription_tier: string | null
         }
         Insert: {
-          bio?: string | null
           created_at?: string | null
           email: string
-          expertise_tags?: string[] | null
-          first_name?: string | null
           id: string
           investor_type?: Database["public"]["Enums"]["investor_type"] | null
-          last_name?: string | null
           name: string
-          phone?: string | null
           profile?: string | null
-          profile_photo_url?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          skills?: string[] | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
         }
         Update: {
-          bio?: string | null
           created_at?: string | null
           email?: string
-          expertise_tags?: string[] | null
-          first_name?: string | null
           id?: string
           investor_type?: Database["public"]["Enums"]["investor_type"] | null
-          last_name?: string | null
           name?: string
-          phone?: string | null
           profile?: string | null
-          profile_photo_url?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          skills?: string[] | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
           assigned_to: string | null
-          created_at: string | null
+          created_at: string
+          description: string | null
           due_date: string | null
           id: string
           idea_id: string
-          status: Database["public"]["Enums"]["task_status"] | null
+          status: Database["public"]["Enums"]["task_status"]
           title: string
+          updated_at: string
         }
         Insert: {
           assigned_to?: string | null
-          created_at?: string | null
+          created_at?: string
+          description?: string | null
           due_date?: string | null
           id?: string
           idea_id: string
-          status?: Database["public"]["Enums"]["task_status"] | null
+          status?: Database["public"]["Enums"]["task_status"]
           title: string
+          updated_at?: string
         }
         Update: {
           assigned_to?: string | null
-          created_at?: string | null
+          created_at?: string
+          description?: string | null
           due_date?: string | null
           id?: string
           idea_id?: string
-          status?: Database["public"]["Enums"]["task_status"] | null
+          status?: Database["public"]["Enums"]["task_status"]
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -499,51 +543,94 @@ export type Database = {
           },
         ]
       }
+      usage_tracking: {
+        Row: {
+          ai_summaries_generated: number | null
+          created_at: string | null
+          id: string
+          meetings_created: number | null
+          month_year: string
+          user_id: string
+        }
+        Insert: {
+          ai_summaries_generated?: number | null
+          created_at?: string | null
+          id?: string
+          meetings_created?: number | null
+          month_year: string
+          user_id: string
+        }
+        Update: {
+          ai_summaries_generated?: number | null
+          created_at?: string | null
+          id?: string
+          meetings_created?: number | null
+          month_year?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_tracking_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activities: {
         Row: {
           activity_type: string
           created_at: string
           id: string
-          idea_id: string | null
+          metadata: Json | null
           user_id: string
         }
         Insert: {
           activity_type: string
           created_at?: string
           id?: string
-          idea_id?: string | null
+          metadata?: Json | null
           user_id: string
         }
         Update: {
           activity_type?: string
           created_at?: string
           id?: string
-          idea_id?: string | null
+          metadata?: Json | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       votes: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           idea_id: string
           user_id: string
-          vote: boolean
+          vote_type: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           idea_id: string
           user_id: string
-          vote: boolean
+          vote_type: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           idea_id?: string
           user_id?: string
-          vote?: boolean
+          vote_type?: string
         }
         Relationships: [
           {
@@ -566,7 +653,7 @@ export type Database = {
         Row: {
           changed_by: string
           created_at: string
-          from_status: string | null
+          from_status: string
           id: string
           idea_id: string
           reason: string | null
@@ -575,7 +662,7 @@ export type Database = {
         Insert: {
           changed_by: string
           created_at?: string
-          from_status?: string | null
+          from_status: string
           id?: string
           idea_id: string
           reason?: string | null
@@ -584,7 +671,7 @@ export type Database = {
         Update: {
           changed_by?: string
           created_at?: string
-          from_status?: string | null
+          from_status?: string
           id?: string
           idea_id?: string
           reason?: string | null
@@ -596,6 +683,13 @@ export type Database = {
             columns: ["changed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_transitions_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
             referencedColumns: ["id"]
           },
         ]
@@ -664,146 +758,4 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      idea_sector: [
-        "technology",
-        "healthcare",
-        "finance",
-        "education",
-        "manufacturing",
-        "retail",
-        "agriculture",
-        "energy",
-        "transportation",
-        "real_estate",
-        "entertainment",
-      ],
-      idea_status: [
-        "proposed",
-        "under_review",
-        "validated",
-        "investment_ready",
-      ],
-      investor_type: ["active", "passive", "strategic"],
-      task_status: ["pending", "in_progress", "done"],
-      user_role: ["member", "admin", "moderator"],
-    },
-  },
-} as const
+export { type DatabaseWithoutInternals as Tables }

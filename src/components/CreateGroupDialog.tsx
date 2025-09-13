@@ -31,6 +31,31 @@ const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) => {
 
     setLoading(true);
     try {
+      // Check user's subscription and existing group count for free users
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profile?.subscription_tier || profile.subscription_tier === 'free') {
+        // Check how many groups this user has created
+        const { count } = await supabase
+          .from('group_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('role', 'admin');
+        
+        if (count && count >= 1) {
+          toast({
+            title: "Free plan limitation",
+            description: "Free users can only create 1 group. Upgrade to Pro to create unlimited groups.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
       // Create the group
       const { data: groupData, error: groupError } = await supabase
         .from('groups')

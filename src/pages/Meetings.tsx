@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,43 +17,51 @@ import { RichTextDisplay } from '@/components/ui/rich-text-display';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/layout/Layout';
 import { useIsMobile } from '@/hooks/use-mobile';
+import FeedbackSurvey from '@/components/FeedbackSurvey';
 
-interface Meeting {
+interface Meetup {
   id: string;
   date: string;
   meeting_time: string | null;
   agenda: string;
   notes: string;
+  ai_summary: string | null;
   action_items: any;
   session_feedback: string | null;
   status: string;
   group_id: string;
   created_at: string;
+  updated_at: string | null;
 }
 
-interface MeetingNote {
+interface MeetupNote {
   id: string;
   content: string;
   user_id: string;
   created_at: string;
   profiles: {
-    first_name: string | null;
-    last_name: string | null;
     name: string;
   } | null;
 }
 
-function Meetings() {
+function Meetups() {
   const { user, isAdmin, isModerator } = useAuth();
   const { selectedGroupId, selectedGroupName } = useGroupContext();
   const isMobile = useIsMobile();
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [meetingNotes, setMeetingNotes] = useState<MeetingNote[]>([]);
+  const [meetups, setMeetups] = useState<Meetup[]>([]);
+  const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
+  const [meetupNotes, setMeetupNotes] = useState<MeetupNote[]>([]);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [activeTab, setActiveTab] = useState('agenda');
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [summaryText, setSummaryText] = useState('');
+  const [myNotes, setMyNotes] = useState('');
+  const [othersNotes, setOthersNotes] = useState<MeetupNote[]>([]);
+  const [isPaidUser, setIsPaidUser] = useState(false);
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const myNotesRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Form states
   const [isCreating, setIsCreating] = useState(false);
@@ -66,17 +74,81 @@ function Meetings() {
 
   useEffect(() => {
     if (user && selectedGroupId) {
-      fetchMeetings();
+      fetchMeetups();
+      checkUserSubscription();
+      checkGroupAdmin();
     }
   }, [user, selectedGroupId]);
 
-  useEffect(() => {
-    if (selectedMeeting) {
-      fetchMeetingNotes(selectedMeeting.id);
+  const checkUserSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, subscription_expires_at')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        const isPro = profile.subscription_tier === 'pro' && 
+                     (!profile.subscription_expires_at || 
+                      new Date(profile.subscription_expires_at) > new Date());
+        setIsPaidUser(isPro);
+      } else {
+        setIsPaidUser(false);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setIsPaidUser(false);
     }
-  }, [selectedMeeting]);
+  };
 
-  const fetchMeetings = async () => {
+  const checkGroupAdmin = async () => {
+    if (!user || !selectedGroupId) return;
+    
+    try {
+      const { data } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('group_id', selectedGroupId)
+        .single();
+      
+      setIsGroupAdmin(data?.role === 'admin');
+    } catch (error) {
+      console.error('Error checking group admin status:', error);
+      setIsGroupAdmin(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedMeetup) {
+      fetchMeetupNotes(selectedMeetup.id);
+      setSummaryText(selectedMeetup.ai_summary || '');
+    }
+  }, [selectedMeetup]);
+
+  useEffect(() => {
+    if (meetupNotes.length > 0 && user) {
+      const userNotes = meetupNotes.filter(note => note.user_id === user.id);
+      const otherNotes = meetupNotes.filter(note => note.user_id !== user.id);
+      
+      // Combine user's notes into a single text
+      const myNotesText = userNotes.map(note => note.content).join('\n\n');
+      setMyNotes(myNotesText);
+      setOthersNotes(otherNotes);
+    }
+  }, [meetupNotes, user]);
+
+  // Auto-resize textarea whenever content changes or component mounts
+  useEffect(() => {
+    if (myNotesRef.current) {
+      autoResizeTextarea(myNotesRef.current);
+    }
+  }, [myNotes, activeTab, selectedMeetup]);
+
+  const fetchMeetups = async () => {
     try {
       // Check if user is member of the selected group
       const { data: membershipData } = await supabase
@@ -86,28 +158,28 @@ function Meetings() {
         .eq('group_id', selectedGroupId);
 
       if (!membershipData || membershipData.length === 0) {
-        setMeetings([]);
+        setMeetups([]);
         setLoading(false);
         return;
       }
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('*')
+        .select('*, ai_summary')
         .eq('group_id', selectedGroupId)
         .order('date', { ascending: false });
 
       if (error) throw error;
-      setMeetings(data || []);
+      setMeetups(data || []);
     } catch (error) {
-      console.error('Error fetching meetings:', error);
-      toast.error('Failed to load meetings');
+      console.error('Error fetching meetups:', error);
+      toast.error('Failed to load meetups');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMeetingNotes = async (meetingId: string) => {
+  const fetchMeetupNotes = async (meetupId: string) => {
     try {
       const { data, error } = await supabase
         .from('meeting_notes')
@@ -117,7 +189,7 @@ function Meetings() {
           user_id,
           created_at
         `)
-        .eq('meeting_id', meetingId)
+        .eq('meeting_id', meetupId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -127,7 +199,7 @@ function Meetings() {
         (data || []).map(async (note) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('first_name, last_name, name')
+            .select('name')
             .eq('id', note.user_id)
             .maybeSingle();
           
@@ -138,13 +210,13 @@ function Meetings() {
         })
       );
       
-      setMeetingNotes(notesWithProfiles);
+      setMeetupNotes(notesWithProfiles);
     } catch (error) {
-      console.error('Error fetching meeting notes:', error);
+      console.error('Error fetching meetup notes:', error);
     }
   };
 
-  const createMeeting = async () => {
+  const createMeetup = async () => {
     if (!user || !selectedGroupId) return;
 
     try {
@@ -160,22 +232,22 @@ function Meetings() {
 
       if (error) throw error;
 
-      toast.success('Meeting created successfully');
+      toast.success('Meetup created successfully');
       setIsCreating(false);
       setFormData({ date: '', meeting_time: '', agenda: '', notes: '' });
-      fetchMeetings();
+      fetchMeetups();
     } catch (error) {
-      console.error('Error creating meeting:', error);
-      toast.error('Failed to create meeting');
+      console.error('Error creating meetup:', error);
+      toast.error('Failed to create meetup');
     }
   };
 
   const addNote = async () => {
-    if (!user || !selectedMeeting || !newNote.trim()) return;
+    if (!user || !selectedMeetup || !newNote.trim()) return;
 
     try {
       const { error } = await supabase.from('meeting_notes').insert({
-        meeting_id: selectedMeeting.id,
+        meeting_id: selectedMeetup.id,
         user_id: user.id,
         content: newNote.trim()
       });
@@ -184,7 +256,7 @@ function Meetings() {
 
       setNewNote('');
       setIsAddingNote(false);
-      fetchMeetingNotes(selectedMeeting.id);
+      fetchMeetupNotes(selectedMeetup.id);
       toast.success('Note added successfully');
     } catch (error) {
       console.error('Error adding note:', error);
@@ -193,10 +265,10 @@ function Meetings() {
   };
 
   const addActionItem = async (item: string) => {
-    if (!selectedMeeting || !item.trim()) return;
+    if (!selectedMeetup || !item.trim()) return;
 
     try {
-      const updatedActionItems = [...(selectedMeeting.action_items || []), {
+      const updatedActionItems = [...(selectedMeetup.action_items || []), {
         id: Date.now(),
         text: item.trim(),
         completed: false,
@@ -208,11 +280,11 @@ function Meetings() {
       const { error } = await supabase
         .from('meetings')
         .update({ action_items: updatedActionItems })
-        .eq('id', selectedMeeting.id);
+        .eq('id', selectedMeetup.id);
 
       if (error) throw error;
 
-      setSelectedMeeting({ ...selectedMeeting, action_items: updatedActionItems });
+      setSelectedMeetup({ ...selectedMeetup, action_items: updatedActionItems });
       toast.success('Action item added');
     } catch (error) {
       console.error('Error adding action item:', error);
@@ -220,20 +292,269 @@ function Meetings() {
     }
   };
 
-  const generateAINotes = async (meetingId: string) => {
+  const generateAINotes = async (meetupId: string) => {
     try {
+      // Check free user AI summary limits (2 per month)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user?.id)
+        .single();
+      
+      if (!profile?.subscription_tier || profile.subscription_tier === 'free') {
+        // Check usage in current month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+        
+        const { data: trackingData } = await supabase
+          .from('usage_tracking')
+          .select('ai_summaries_generated')
+          .eq('user_id', user?.id)
+          .eq('month_year', new Date().toISOString().slice(0, 7)) // YYYY-MM format
+          .single();
+
+        const currentUsage = trackingData?.ai_summaries_generated || 0;
+        
+        if (currentUsage >= 2) {
+          toast.error('Free users get 2 AI summaries per month. Upgrade to Pro for unlimited summaries.');
+          return;
+        }
+      }
+      
       toast.info('Generating AI summary...');
-      const { data, error } = await supabase.functions.invoke('generate-meeting-notes', {
-        body: { meetingId }
-      });
+      console.log('Generating AI summary for meetupId:', meetupId);
+      
+      // Fetch meeting notes
+      const { data: notes, error: notesError } = await supabase
+        .from('meeting_notes')
+        .select(`
+          content,
+          created_at,
+          user_id
+        `)
+        .eq('meeting_id', meetupId)
+        .order('created_at', { ascending: true });
+
+      if (notesError) {
+        console.error('Error fetching notes:', notesError);
+        toast.error('Failed to fetch meetup notes');
+        return;
+      }
+
+      if (!notes || notes.length === 0) {
+        toast.error('No notes found for this meetup. Please add some notes first.');
+        return;
+      }
+
+      // Fetch user profiles for the notes
+      const notesWithProfiles = await Promise.all(
+        notes.map(async (note) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', note.user_id)
+            .maybeSingle();
+          
+          return {
+            ...note,
+            profiles: profile
+          };
+        })
+      );
+
+      // Format notes for AI processing
+      const formattedNotes = notesWithProfiles.map(note => {
+        const authorName = note.profiles?.name || 'Unknown User';
+        
+        return `[${authorName}]: ${note.content}`;
+      }).join('\n\n');
+
+      console.log('Formatted notes for AI:', formattedNotes);
+
+      // Generate AI summary using Gemini API
+      const aiSummary = await generateWithGemini(formattedNotes);
+
+      if (!aiSummary) {
+        toast.error('Failed to generate AI summary. Please check your API configuration.');
+        return;
+      }
+
+      // Save AI summary to database
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update({ 
+          ai_summary: aiSummary
+        })
+        .eq('id', meetupId);
+
+      if (updateError) {
+        console.error('Error updating meetup:', updateError);
+        toast.error('Failed to save AI summary');
+        return;
+      }
+
+      // Track usage for free users
+      if (!profile?.subscription_tier || profile.subscription_tier === 'free') {
+        try {
+          // Use upsert to increment usage count
+          const monthYear = new Date().toISOString().slice(0, 7);
+          
+          // Get current usage again in case it changed
+          const { data: currentTrackingData } = await supabase
+            .from('usage_tracking')
+            .select('ai_summaries_generated')
+            .eq('user_id', user?.id)
+            .eq('month_year', monthYear)
+            .single();
+
+          const currentUsageCount = currentTrackingData?.ai_summaries_generated || 0;
+          
+          await supabase
+            .from('usage_tracking')
+            .upsert({
+              user_id: user?.id,
+              month_year: monthYear,
+              ai_summaries_generated: currentUsageCount + 1
+            }, { 
+              onConflict: 'user_id,month_year'
+            });
+        } catch (error) {
+          // Ignore tracking errors - don't affect user experience
+          console.log('Usage tracking error (safe to ignore):', error);
+        }
+      }
+
+      toast.success('AI summary generated successfully');
+      setSummaryText(aiSummary);
+      fetchMeetups(); // Refresh to show updated meetup with AI summary
+      
+    } catch (error) {
+      console.error('Error generating AI notes:', error);
+      toast.error(`Failed to generate AI summary: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const saveSummary = async () => {
+    if (!selectedMeetup) return;
+
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ ai_summary: summaryText })
+        .eq('id', selectedMeetup.id);
 
       if (error) throw error;
 
-      toast.success('AI summary generated successfully');
-      fetchMeetings(); // Refresh to show updated meeting with AI summary
+      toast.success('Summary saved successfully');
+      setEditingSummary(false);
+      fetchMeetups(); // Refresh data
     } catch (error) {
-      console.error('Error generating AI notes:', error);
-      toast.error('Failed to generate AI summary');
+      console.error('Error saving summary:', error);
+      toast.error('Failed to save summary');
+    }
+  };
+
+  const saveMyNotes = async () => {
+    if (!user || !selectedMeetup || !myNotes.trim()) return;
+
+    try {
+      // Delete existing user notes for this meeting
+      await supabase
+        .from('meeting_notes')
+        .delete()
+        .eq('meeting_id', selectedMeetup.id)
+        .eq('user_id', user.id);
+
+      // Add new consolidated note
+      if (myNotes.trim()) {
+        const { error } = await supabase
+          .from('meeting_notes')
+          .insert({
+            meeting_id: selectedMeetup.id,
+            user_id: user.id,
+            content: myNotes.trim()
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success('Your notes saved successfully');
+      fetchMeetupNotes(selectedMeetup.id);
+    } catch (error) {
+      console.error('Error saving my notes:', error);
+      toast.error('Failed to save notes');
+    }
+  };
+
+  const autoResizeTextarea = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(el.scrollHeight, 80)}px`;
+  };
+
+  const handleMyNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    setMyNotes(el.value);
+    autoResizeTextarea(el);
+  };
+
+  const generateWithGemini = async (formattedNotes: string): Promise<string | null> => {
+    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+    
+    if (!GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not found in environment variables');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Analyze the meetup notes below and produce a concise, well-structured HTML summary.
+
+STRICT OUTPUT RULES:
+- Return ONLY a valid HTML fragment (no markdown, no code fences, no extra pre/post text)
+- Use these exact sections and tags:
+  <h3>Key Discussion Points</h3>
+  <ul><li>point</li>...</ul>
+  <h3>Decisions Made</h3>
+  <ul><li>decision</li>...</ul>
+  <h3>Next Steps</h3>
+  <ul><li>next step</li>...</ul>
+- Keep bullets short and scannable; combine duplicates; avoid filler
+- Use only tags: h3, ul, li, p, strong, em, a
+
+Meetup Notes:
+${formattedNotes}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Gemini API error:', response.status, response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      const aiSummary = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('Generated summary with Gemini:', aiSummary);
+      return aiSummary;
+      
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      return null;
     }
   };
 
@@ -244,32 +565,34 @@ function Meetings() {
           <CardContent className="p-8 text-center">
             <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Group Selected</h3>
-            <p className="text-muted-foreground">Please select a group to view meetings.</p>
+            <p className="text-muted-foreground">Please select a group to view meetups.</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  
+
   return (
     <Layout>
       <div className="container mx-auto py-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Meetings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Meetups</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Group: {selectedGroupName}</p>
         </div>
-        {(isAdmin || isModerator) && (
+        {(isAdmin || isModerator || isGroupAdmin || isPaidUser) && (
           <Dialog open={isCreating} onOpenChange={setIsCreating}>
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
-                Schedule Meeting
+                Schedule Meetup
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Schedule New Meeting</DialogTitle>
+                <DialogTitle>Schedule New Meetup</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -297,7 +620,7 @@ function Meetings() {
                   <RichTextEditor
                     value={formData.agenda}
                     onChange={(value) => setFormData({ ...formData, agenda: value })}
-                    placeholder="Meeting agenda..."
+                    placeholder="Meetup agenda..."
                     className="min-h-[120px]"
                   />
                 </div>
@@ -307,7 +630,7 @@ function Meetings() {
                       id="notes"
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Initial meeting notes..."
+                      placeholder="Initial meetup notes..."
                       className="min-h-[100px]"
                     />
                   </div>
@@ -315,8 +638,8 @@ function Meetings() {
                   <Button variant="outline" onClick={() => setIsCreating(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={createMeeting}>
-                    Schedule Meeting
+                  <Button onClick={createMeetup}>
+                    Schedule Meetup
                   </Button>
                 </div>
               </div>
@@ -326,47 +649,47 @@ function Meetings() {
       </div>
 
       <div className={`grid grid-cols-1 ${isMobile ? 'space-y-4' : 'lg:grid-cols-3'} gap-4 md:gap-6`}>
-        {/* Meetings List */}
-        <div className={`${!isMobile ? 'lg:col-span-1' : ''} ${isMobile && selectedMeeting ? 'hidden' : ''}`}>
+        {/* Meetups List */}
+        <div className={`${!isMobile ? 'lg:col-span-1' : ''} ${isMobile && selectedMeetup ? 'hidden' : ''}`}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Meetings
+                Meetups
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
-                <p>Loading meetings...</p>
-              ) : meetings.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No meetings scheduled</p>
+                <p>Loading meetups...</p>
+              ) : meetups.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No meetups scheduled</p>
               ) : (
-                meetings.map((meeting) => (
+                meetups.map((meetup) => (
                   <Card
-                    key={meeting.id}
+                    key={meetup.id}
                     className={`cursor-pointer transition-colors ${
-                      selectedMeeting?.id === meeting.id ? 'border-primary' : ''
+                      selectedMeetup?.id === meetup.id ? 'border-primary' : ''
                     }`}
-                    onClick={() => setSelectedMeeting(meeting)}
+                    onClick={() => setSelectedMeetup(meetup)}
                   >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-medium">
-                            {new Date(meeting.date).toLocaleDateString()}
+                            {new Date(meetup.date).toLocaleDateString()}
                           </p>
-                          {meeting.meeting_time && (
+                          {meetup.meeting_time && (
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {meeting.meeting_time}
+                              {meetup.meeting_time}
                             </p>
                           )}
                         </div>
-                        <Badge variant={meeting.status === 'completed' ? 'default' : 'secondary'}>
-                          {meeting.status}
+                        <Badge variant={meetup.status === 'completed' ? 'default' : 'secondary'}>
+                          {meetup.status}
                         </Badge>
                       </div>
-                      <p className="text-sm mt-2 line-clamp-2">{meeting.agenda}</p>
+                      <p className="text-sm mt-2 line-clamp-2">{meetup.agenda}</p>
                     </CardContent>
                   </Card>
                 ))
@@ -375,232 +698,276 @@ function Meetings() {
           </Card>
         </div>
 
-        {/* Meeting Details */}
-        <div className={`${!isMobile ? 'lg:col-span-2' : ''} ${isMobile && !selectedMeeting ? 'hidden' : ''}`}>
-          {selectedMeeting ? (
+        {/* Meetup Details */}
+        <div className={`${!isMobile ? 'lg:col-span-2' : ''} ${isMobile && !selectedMeetup ? 'hidden' : ''}`}>
+          {selectedMeetup ? (
             <div className="h-full">
-              {isMobile && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setSelectedMeeting(null)}
-                  className="mb-4"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Meetings
-                </Button>
-              )}
+              <div className="flex gap-2 mb-4">
+                {isMobile && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setSelectedMeetup(null)}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Meetups
+                  </Button>
+                )}
+                
+              </div>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className={`grid w-full ${
+                  (isAdmin || isModerator) && isPaidUser ? 'grid-cols-4' : 
+                  (isAdmin || isModerator) || isPaidUser ? 'grid-cols-3' : 'grid-cols-2'
+                }`}>
                   <TabsTrigger value="agenda">Agenda</TabsTrigger>
                   <TabsTrigger value="notes" className="relative">
                     Notes
-                    {selectedMeeting.status === 'in_progress' && (
+                    {selectedMeetup.status === 'in_progress' && (
                       <Badge variant="secondary" className="ml-2 text-xs">Live</Badge>
                     )}
                   </TabsTrigger>
+                  {(isAdmin || isModerator) && (
+                    <TabsTrigger value="summary" className="relative">
+                      Summary
+                      {selectedMeetup.ai_summary && (
+                        <Badge variant="outline" className="ml-2 text-xs">AI</Badge>
+                      )}
+                    </TabsTrigger>
+                  )}
+                  {isPaidUser && (
+                    <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                  )}
                 </TabsList>
                 
                 <TabsContent value="agenda" className="flex-1 mt-4">
                   <div className="space-y-4">
-                    {/* Meeting Info */}
+                    {/* Meetup Info */}
                     <Card>
                       <CardHeader>
-                        <CardTitle>Meeting Details</CardTitle>
+                        <CardTitle>Meetup Details</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label className="text-sm font-medium">Date</Label>
-                            <p>{new Date(selectedMeeting.date).toLocaleDateString()}</p>
+                            <p>{new Date(selectedMeetup.date).toLocaleDateString()}</p>
                           </div>
                           <div>
                             <Label className="text-sm font-medium">Time</Label>
-                            <p>{selectedMeeting.meeting_time || 'Not set'}</p>
+                            <p>{selectedMeetup.meeting_time || 'Not set'}</p>
                           </div>
                         </div>
                         <div>
                           <Label className="text-sm font-medium">Agenda</Label>
-                          <RichTextDisplay content={selectedMeeting.agenda} className="mt-1" />
+                          <RichTextDisplay content={selectedMeetup.agenda} className="mt-1" />
                         </div>
-                        {selectedMeeting.notes && (
+                        {selectedMeetup.notes && (
                         <div>
                           <Label className="text-sm font-medium">Initial Notes</Label>
-                          <p className="mt-1 text-sm whitespace-pre-wrap">{selectedMeeting.notes}</p>
+                          <p className="mt-1 text-sm whitespace-pre-wrap">{selectedMeetup.notes}</p>
                         </div>
                         )}
                       </CardContent>
                     </Card>
 
-                    {/* Action Items */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <CheckSquare className="h-5 w-5" />
-                          Action Items
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          {selectedMeeting.action_items?.map((item: any, index: number) => (
-                            <div key={index} className="flex items-center gap-2 p-2 border rounded">
-                              <input
-                                type="checkbox"
-                                checked={item.completed}
-                                className="rounded"
-                                readOnly
-                              />
-                              <span className={item.completed ? 'line-through text-muted-foreground' : ''}>
-                                {item.text}
-                              </span>
-                            </div>
-                          )) || <p className="text-muted-foreground">No action items yet</p>}
-                        </div>
-                        {(isAdmin || isModerator) && (
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Add action item..."
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  addActionItem(e.currentTarget.value);
-                                  e.currentTarget.value = '';
-                                }
-                              }}
-                            />
-                            <Button
-                              onClick={(e) => {
-                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                addActionItem(input.value);
-                                input.value = '';
-                              }}
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="notes" className="flex-1 mt-4">
-                  <Card className="h-full flex flex-col">
-                    <CardHeader className="flex-shrink-0">
-                      <div className="flex justify-between items-center">
-                        <CardTitle className="flex items-center gap-2">
-                          <MessageSquare className="h-5 w-5" />
-                          Collaborative Notes
-                        </CardTitle>
-                        {(isAdmin || isModerator) && meetingNotes.length > 0 && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => generateAINotes(selectedMeeting.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Bot className="h-4 w-4" />
-                            AI Summary
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col p-0">
-                      {/* Chat-like messages */}
-                      <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ height: isMobile ? 'calc(100vh - 300px)' : '400px' }}>
-                        {meetingNotes.map((note) => (
-                          <div key={note.id} className="flex gap-3">
-                            <Avatar className="h-8 w-8 flex-shrink-0">
-                              <AvatarFallback className="text-xs">
-                                {((note.profiles?.first_name || note.profiles?.name || 'U').charAt(0) +
-                                  (note.profiles?.last_name || '').charAt(0)).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-medium">
-                                  {note.profiles?.first_name && note.profiles?.last_name
-                                    ? `${note.profiles.first_name} ${note.profiles.last_name}`
-                                    : note.profiles?.name || 'Unknown User'}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(note.created_at).toLocaleTimeString()}
-                                </span>
-                              </div>
-                              <div className="bg-muted/30 p-3 rounded-lg">
-                                <p className="text-sm whitespace-pre-wrap">{note.content}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {meetingNotes.length === 0 && (
-                          <div className="text-center text-muted-foreground py-8">
-                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No notes yet. {selectedMeeting.status === 'in_progress' ? 'Start the conversation!' : 'Add the first note to get started.'}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Input area */}
-                      <div className="border-t p-4 bg-background">
-                        {!isAddingNote ? (
+                  <div className="grid gap-4">
+                    {/* My Notes */}
+                    <Card className="flex flex-col">
+                      <CardHeader className="flex-shrink-0">
+                        <div className="flex justify-between items-center">
+                          <CardTitle className="text-lg">My Notes</CardTitle>
                           <Button 
-                            onClick={() => setIsAddingNote(true)} 
-                            className="w-full"
-                            size="sm"
+                            size="sm" 
+                            onClick={saveMyNotes}
+                            disabled={!myNotes.trim()}
                           >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Note
+                            Save
                           </Button>
-                        ) : (
-                          <div className="space-y-2">
-                            <Textarea
-                              value={newNote}
-                              onChange={(e) => setNewNote(e.target.value)}
-                              placeholder="Type your note..."
-                              className="min-h-[60px] resize-none"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  if (newNote.trim()) {
-                                    addNote();
-                                  }
-                                }
-                              }}
-                            />
-                            <div className="flex gap-2">
-                              <Button 
-                                onClick={addNote} 
-                                disabled={!newNote.trim()}
-                                size="sm"
-                                className="flex-1"
-                              >
-                                Send
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                onClick={() => {
-                                  setIsAddingNote(false);
-                                  setNewNote('');
-                                }}
-                                size="sm"
-                              >
-                                Cancel
-                              </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <Textarea
+                          ref={(el) => {
+                            myNotesRef.current = el;
+                            if (el) {
+                              // Force initial resize on mount
+                              setTimeout(() => autoResizeTextarea(el), 0);
+                            }
+                          }}
+                          value={myNotes}
+                          onChange={handleMyNotesChange}
+                          onInput={(e) => handleMyNotesChange(e as unknown as React.ChangeEvent<HTMLTextAreaElement>)}
+                          placeholder="Add your personal notes here..."
+                          className="w-full resize-none border-0 focus:ring-0 p-0"
+                          style={{ 
+                            minHeight: '80px',
+                            overflow: 'hidden',
+                            height: 'auto',
+                            boxShadow: 'none'
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Others' Notes */}
+                    <Card className="flex flex-col">
+                      <CardHeader className="flex-shrink-0">
+                        <CardTitle className="text-lg">Others' Notes</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {othersNotes.map((note) => (
+                            <div key={note.id} className="flex gap-3">
+                              <Avatar className="h-8 w-8 flex-shrink-0">
+                                <AvatarFallback className="text-xs">
+                                  {(note.profiles?.name || 'Unknown User').substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium">
+                                    {note.profiles?.name || 'Unknown User'}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(note.created_at).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                                <div className="bg-muted/30 p-3 rounded-lg">
+                                  <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {othersNotes.length === 0 && (
+                            <div className="text-center text-muted-foreground py-8">
+                              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p>No notes from others yet.</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                {(isAdmin || isModerator) && (
+                  <TabsContent value="summary" className="flex-1 mt-4">
+                    <Card className="h-full flex flex-col">
+                      <CardHeader className="flex-shrink-0">
+                        <div className="flex justify-between items-center">
+                          <CardTitle className="flex items-center gap-2">
+                            <Bot className="h-5 w-5" />
+                            AI Summary
+                          </CardTitle>
+                          <div className="flex gap-2">
+                            {summaryText && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant={editingSummary ? "default" : "outline"}
+                                  onClick={() => editingSummary ? saveSummary() : setEditingSummary(true)}
+                                >
+                                  {editingSummary ? 'Save' : 'Edit'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSummaryText('');
+                                    setEditingSummary(false);
+                                  }}
+                                >
+                                  Reset
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex-1 flex flex-col p-4">
+                        {!summaryText ? (
+                          <div className="flex-1 flex items-center justify-center text-center">
+                            <div>
+                              <Bot className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                              <h3 className="text-lg font-semibold mb-2">No Summary Generated</h3>
+                              <p className="text-muted-foreground mb-6">
+                                {meetupNotes.length > 0 
+                                  ? 'Generate an AI-powered summary from the meetup notes' 
+                                  : 'Add some notes first, then generate a summary'}
+                              </p>
+                              {meetupNotes.length > 0 && (
+                                <Button onClick={() => generateAINotes(selectedMeetup.id)} size="lg">
+                                  <Bot className="h-4 w-4 mr-2" />
+                                  Generate AI Summary
+                                </Button>
+                              )}
                             </div>
                           </div>
+                        ) : (
+                          <div className="flex-1 space-y-4">
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                              <p className="text-sm text-amber-800 flex items-center gap-2">
+                                <Bot className="h-4 w-4" />
+                                Generated by AI • Saved you {Math.ceil(meetupNotes.length * 2)} minutes consolidating {meetupNotes.length} notes
+                              </p>
+                            </div>
+                            {editingSummary ? (
+                              <div className="space-y-3">
+                                <RichTextEditor
+                                  value={summaryText}
+                                  onChange={setSummaryText}
+                                  placeholder="Edit the AI-generated summary..."
+                                  className="min-h-[400px]"
+                                />
+                                <div className="flex gap-2">
+                                  <Button onClick={saveSummary}>Save Changes</Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      setEditingSummary(false);
+                                      setSummaryText(selectedMeetup.ai_summary || '');
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-blue-50 p-4 rounded-md border-l-4 border-blue-400 min-h-[400px]">
+                                <RichTextDisplay 
+                                  content={summaryText} 
+                                  className="prose-headings:text-blue-900 prose-headings:font-semibold prose-headings:mb-3 prose-ul:ml-0 prose-li:ml-4"
+                                />
+                              </div>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
+
+                {isPaidUser && (
+                  <TabsContent value="feedback" className="flex-1 mt-4">
+                    <FeedbackSurvey 
+                      meetupId={selectedMeetup.id} 
+                      onSubmitted={() => toast.success('Thanks for helping us improve! 🚀')}
+                    />
+                  </TabsContent>
+                )}
               </Tabs>
             </div>
           ) : (
             <Card>
               <CardContent className="p-8 text-center">
                 <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Select a Meeting</h3>
-                <p className="text-muted-foreground">Choose a meeting from the list to view details and notes.</p>
+                <h3 className="text-lg font-semibold mb-2">Select a Meetup</h3>
+                <p className="text-muted-foreground">Choose a meetup from the list to view details and notes.</p>
               </CardContent>
             </Card>
           )}
@@ -611,4 +978,4 @@ function Meetings() {
   );
 }
 
-export default Meetings;
+export default Meetups;

@@ -27,17 +27,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get meeting notes
+    // Get meeting notes (fixed query)
     const { data: notes, error: notesError } = await supabase
       .from('meeting_notes')
       .select(`
         content,
         created_at,
-        profiles:user_id (
-          first_name,
-          last_name,
-          name
-        )
+        user_id
       `)
       .eq('meeting_id', meetingId)
       .order('created_at', { ascending: true });
@@ -57,8 +53,24 @@ serve(async (req) => {
       );
     }
 
+    // Fetch user profiles separately (fixed approach)
+    const notesWithProfiles = await Promise.all(
+      notes.map(async (note) => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, name')
+          .eq('id', note.user_id)
+          .maybeSingle();
+        
+        return {
+          ...note,
+          profiles: profile
+        };
+      })
+    );
+
     // Format notes for AI processing
-    const formattedNotes = notes.map(note => {
+    const formattedNotes = notesWithProfiles.map(note => {
       const authorName = note.profiles?.first_name && note.profiles?.last_name 
         ? `${note.profiles.first_name} ${note.profiles.last_name}`
         : note.profiles?.name || 'Unknown User';
@@ -110,6 +122,8 @@ Please format the response in a clear, structured manner.`
           const geminiData = await geminiResponse.json();
           aiSummary = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
           console.log('Generated summary with Gemini:', aiSummary);
+        } else {
+          console.error('Gemini API error:', geminiResponse.status, geminiResponse.statusText);
         }
       } catch (error) {
         console.error('Gemini API error:', error);
@@ -159,6 +173,8 @@ Please format the response in a clear, structured manner.`
             const deepseekData = await deepseekResponse.json();
             aiSummary = deepseekData.choices?.[0]?.message?.content || '';
             console.log('Generated summary with DeepSeek:', aiSummary);
+          } else {
+            console.error('DeepSeek API error:', deepseekResponse.status, deepseekResponse.statusText);
           }
         } catch (error) {
           console.error('DeepSeek API error:', error);
@@ -173,7 +189,7 @@ Please format the response in a clear, structured manner.`
       );
     }
 
-    // Update meeting with AI-generated summary
+    // Update meeting with AI-generated summary (fixed to use ai_summary column)
     const { error: updateError } = await supabase
       .from('meetings')
       .update({ 

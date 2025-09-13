@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { GroupProvider } from "@/hooks/useGroupContext";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Ideas from "./pages/Ideas";
@@ -17,8 +18,10 @@ import Settings from "./pages/Settings";
 import GroupJoin from "./pages/GroupJoin";
 import GroupCreate from "./pages/GroupCreate";
 import Groups from "./pages/Groups";
-import Meetings from "./pages/Meetings";
+import Meetups from "./pages/Meetings";
 import EnhancedProfile from "./pages/EnhancedProfile";
+import Billing from "./pages/Billing";
+import AdminPanel from "./pages/AdminPanel";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -32,6 +35,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              <Route path="/landing" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/groups/join" element={
                 <ProtectedRoute>
@@ -71,12 +75,22 @@ const App = () => (
               } />
               <Route path="/meetings" element={
                 <ProtectedRoute>
-                  <Meetings />
+                  <Meetups />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <EnhancedProfile />
+                </ProtectedRoute>
+              } />
+              <Route path="/billing" element={
+                <ProtectedRoute>
+                  <Billing />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminPanel />
                 </ProtectedRoute>
               } />
               <Route path="/users" element={
