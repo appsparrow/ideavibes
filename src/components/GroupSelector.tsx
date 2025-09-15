@@ -129,23 +129,7 @@ const GroupSelector = ({ onGroupSelect, selectedGroupId }: GroupSelectorProps) =
         </Button>
       </div>
 
-      {/* Global/All Groups Option */}
-      <Card 
-        className={`cursor-pointer transition-colors ${
-          selectedGroupId === null ? 'ring-2 ring-primary' : 'hover:bg-muted/50'
-        }`}
-        onClick={() => onGroupSelect(null)}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">All Groups</h3>
-              <p className="text-sm text-muted-foreground">View ideas from all your groups</p>
-            </div>
-            <Badge variant="secondary">Global</Badge>
-          </div>
-        </CardContent>
-      </Card>
+      {/* All Groups option hidden for now */}
 
       {/* User's Groups */}
       {groups.map((group) => (

@@ -16,7 +16,7 @@ const Index = () => {
         <div className="text-center mb-6 md:mb-8 px-2">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">Welcome to IdeaFlow</h1>
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-4 md:mb-6 max-w-2xl mx-auto">
-            Collaborative investment idea evaluation platform
+            Collaborative idea evaluation platform
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground truncate">
             Logged in as: {user?.email}
@@ -32,7 +32,7 @@ const Index = () => {
             <CardContent>
               <div className="text-2xl font-bold">New</div>
               <p className="text-xs text-muted-foreground">
-                Share your investment ideas
+                Share your ideas
               </p>
             </CardContent>
           </Card>

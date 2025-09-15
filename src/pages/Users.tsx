@@ -165,7 +165,7 @@ const Users = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">Community Members</h1>
               <p className="text-muted-foreground">
-                Track participation and engagement across the investment community
+                Track participation and engagement across the community
               </p>
             </div>
           </div>

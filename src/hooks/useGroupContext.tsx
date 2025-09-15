@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GroupContextType {
   selectedGroupId: string | null;
@@ -14,10 +15,11 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and auto-select first group
   useEffect(() => {
-    if (user) {
+    if (user && !hasInitialized) {
       const saved = localStorage.getItem(`selectedGroup_${user.id}`);
       if (saved) {
         try {
@@ -27,9 +29,40 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
           console.error('Error parsing saved group:', error);
         }
+      } else {
+        // No saved group, auto-select first available group
+        autoSelectFirstGroup();
       }
+      setHasInitialized(true);
     }
-  }, [user]);
+  }, [user, hasInitialized]);
+
+  const autoSelectFirstGroup = async () => {
+    if (!user) return;
+
+    try {
+      const { data: groupsData, error } = await supabase
+        .from('group_members')
+        .select(`
+          groups (
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (error) throw error;
+
+      if (groupsData && groupsData.length > 0) {
+        const firstGroup = groupsData[0].groups as any;
+        setSelectedGroupId(firstGroup.id);
+        setSelectedGroupName(firstGroup.name);
+      }
+    } catch (error) {
+      console.error('Error auto-selecting first group:', error);
+    }
+  };
 
   // Save to localStorage when selection changes
   useEffect(() => {

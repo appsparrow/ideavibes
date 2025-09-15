@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useGroupContext } from '@/hooks/useGroupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ interface JoinGroupFormProps {
 
 const JoinGroupForm = ({ inviteCode: initialInviteCode, onSuccess }: JoinGroupFormProps) => {
   const { user } = useAuth();
+  const { setSelectedGroupId, setSelectedGroupName } = useGroupContext();
   const navigate = useNavigate();
   const [inviteCode, setInviteCode] = useState(initialInviteCode || '');
   const [loading, setLoading] = useState(false);
@@ -36,9 +38,13 @@ const JoinGroupForm = ({ inviteCode: initialInviteCode, onSuccess }: JoinGroupFo
       const result = data as { success: boolean; group_name?: string; error?: string };
 
       if (result.success) {
+        // Automatically select the joined group
+        setSelectedGroupId(result.group_id);
+        setSelectedGroupName(result.group_name);
+        
         toast({
           title: "Welcome to the group!",
-          description: `You've successfully joined ${result.group_name}.`,
+          description: `You've successfully joined ${result.group_name} and it has been selected.`,
         });
         onSuccess?.();
         if (!onSuccess) navigate('/');

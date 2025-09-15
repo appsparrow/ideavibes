@@ -235,7 +235,7 @@ const Settings = () => {
                     Profile Information
                   </CardTitle>
                   <CardDescription>
-                    Update your personal information and investment preferences
+                    Update your personal information and preferences
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -293,7 +293,7 @@ const Settings = () => {
                     <Label htmlFor="profile">Bio / Profile</Label>
                     <Textarea
                       id="profile"
-                      placeholder="Tell the community about your investment interests, expertise, and background..."
+                      placeholder="Tell the community about your interests, expertise, and background..."
                       value={profile.profile || ''}
                       onChange={(e) => setProfile({ ...profile, profile: e.target.value })}
                       className="min-h-[100px]"

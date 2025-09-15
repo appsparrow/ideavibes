@@ -101,18 +101,7 @@ const Header = () => {
             </span>
           </Link>
           
-          {/* Workspace indicator */}
-          {selectedGroupName && (
-            <Link 
-              to={userGroups.length > 1 ? "/groups" : "#"} 
-              className={`flex items-center space-x-2 text-sm bg-muted px-3 py-1.5 rounded-md transition-colors ${
-                userGroups.length > 1 ? 'hover:bg-muted/80 cursor-pointer' : 'cursor-default'
-              }`}
-            >
-              <Building2 className="h-4 w-4" />
-              <span className="max-w-32 truncate font-medium">{selectedGroupName}</span>
-            </Link>
-          )}
+          {/* Workspace indicator removed */}
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6 ml-8">

@@ -276,7 +276,7 @@ const DocumentManager = ({ ideaId }: DocumentManagerProps) => {
                 <DialogHeader>
                   <DialogTitle>Add Document</DialogTitle>
                   <DialogDescription>
-                    Link a document or resource to this investment idea
+                    Link a document or resource to this idea
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">

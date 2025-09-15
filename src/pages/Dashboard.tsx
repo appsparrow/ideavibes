@@ -47,6 +47,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [userHasGroups, setUserHasGroups] = useState(true);
+  const [userGroupCount, setUserGroupCount] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,11 +64,13 @@ const Dashboard = () => {
       const { data } = await supabase
         .from('group_members')
         .select('group_id')
-        .eq('user_id', user.id)
-        .limit(1);
+        .eq('user_id', user.id);
       
-      const hasGroups = (data || []).length > 0;
+      const groupCount = (data || []).length;
+      const hasGroups = groupCount > 0;
+      
       setUserHasGroups(hasGroups);
+      setUserGroupCount(groupCount);
       
       // Auto-open group selector if user has no groups
       if (!hasGroups && !showGroupSelector) {
@@ -80,9 +83,9 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Build group filter
+      // Build group filter - always filter by selected group or user's groups
       const groupFilter = selectedGroupId ? { eq: ['group_id', selectedGroupId] } : 
-        { or: `group_id.is.null,group_id.in.(${await getUserGroupIds()})` };
+        { in: ['group_id', await getUserGroupIds()] };
 
       // Fetch total ideas count (scoped to groups user has access to)
       let totalIdeasQuery = supabase.from('ideas').select('*', { count: 'exact', head: true });
@@ -281,30 +284,35 @@ const Dashboard = () => {
               />
             </div>
           ) : (
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">Idea Board</h1>
-                  {selectedGroupName ? (
-                    <Badge variant="outline" className="text-sm">
-                      {selectedGroupName}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-sm">All Groups</Badge>
-                  )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setShowGroupSelector(true)}
-                  >
-                    Switch Workspace
-                  </Button>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold">Idea Board</h1>
+                  <div className="flex items-center gap-2">
+                    {selectedGroupName ? (
+                      <Badge variant="outline" className="text-xs sm:text-sm">
+                        {selectedGroupName}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs sm:text-sm">All Groups</Badge>
+                    )}
+                    {userGroupCount > 1 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setShowGroupSelector(true)}
+                        className="text-xs sm:text-sm"
+                      >
+                        Switch Workspace
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-muted-foreground">
-                  Track your ideas, evaluations, and investment opportunities
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Track your ideas, evaluations, and opportunities
                 </p>
               </div>
-              <Button asChild>
+              <Button asChild className="w-full sm:w-auto">
                 <Link to="/submit-idea">
                   <Plus className="mr-2 h-4 w-4" />
                   Submit Idea

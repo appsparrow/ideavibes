@@ -299,7 +299,7 @@ const IdeaDetail = () => {
       fetchIdeaData(); // Refresh data
       toast({
         title: "Interest recorded",
-        description: "Your investment interest has been recorded.",
+        description: "Your interest has been recorded.",
       });
     } catch (error: any) {
       toast({
@@ -594,7 +594,7 @@ const IdeaDetail = () => {
               {user && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Investment Interest</CardTitle>
+                    <CardTitle className="text-lg">Interest</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <Select value={userInterest} onValueChange={setUserInterest}>

@@ -146,7 +146,7 @@ const Auth = () => {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">IdeaFlow</CardTitle>
           <CardDescription>
-            Investment idea collaboration platform
+            Idea collaboration platform
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Header from '@/components/layout/Header';
 
 const SubmitIdea = () => {
@@ -20,7 +20,6 @@ const SubmitIdea = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [userGroups, setUserGroups] = useState<Array<{id: string, name: string}>>([]);
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
   const { user } = useAuth();
   const { selectedGroupId } = useGroupContext();
   const { toast } = useToast();
@@ -77,7 +76,7 @@ const SubmitIdea = () => {
 
       toast({
         title: "Idea submitted!",
-        description: "Your investment idea has been successfully submitted.",
+        description: "Your idea has been successfully submitted.",
       });
 
       navigate('/ideas');
@@ -92,41 +91,6 @@ const SubmitIdea = () => {
     }
   };
 
-  const generateAISummary = async () => {
-    if (!description.trim()) {
-      toast({
-        title: "No description",
-        description: "Please enter a description first to generate AI insights.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAiLoading(true);
-    try {
-      // Simulated AI enhancement - in real app, this would call an AI service
-      const aiInsights = [
-        "• Market opportunity: High growth potential in emerging sectors",
-        "• Key risks: Market competition and regulatory challenges",
-        "• Competitive advantage: Unique value proposition and first-mover advantage"
-      ];
-      
-      setDescription(prev => prev + "\n\nAI Insights:\n" + aiInsights.join("\n"));
-      
-      toast({
-        title: "AI insights added",
-        description: "AI-generated market analysis has been added to your description.",
-      });
-    } catch (error) {
-      toast({
-        title: "AI analysis failed",
-        description: "Could not generate AI insights. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,31 +98,34 @@ const SubmitIdea = () => {
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/ideas')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Ideas
-            </Button>
+          {/* Header Section */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/ideas')}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Ideas
+                </Button>
+              </div>
+              <h1 className="text-3xl font-bold">Submit New Idea</h1>
+              <p className="text-muted-foreground mt-2">
+                Share your idea with the group for evaluation and discussion.
+              </p>
+            </div>
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Submit New Investment Idea</CardTitle>
-              <CardDescription>
-                Share your investment opportunity with the group for evaluation and discussion.
-              </CardDescription>
-            </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="title">Idea Title *</Label>
                   <Input
                     id="title"
-                    placeholder="Enter a compelling title for your investment idea"
+                    placeholder="Enter a compelling title for your idea"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
@@ -169,10 +136,9 @@ const SubmitIdea = () => {
                   <Label htmlFor="group">Submit to Group</Label>
                   <Select value={selectedGroup} onValueChange={setSelectedGroup}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a group workspace (optional)" />
+                      <SelectValue placeholder="Select a group workspace" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="global">Global (visible to all groups)</SelectItem>
                       {userGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
@@ -181,7 +147,7 @@ const SubmitIdea = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
-                    Choose which group workspace to submit this idea to. Leave blank for global visibility.
+                    Choose which group workspace to submit this idea to.
                   </p>
                 </div>
 
@@ -189,7 +155,7 @@ const SubmitIdea = () => {
                   <Label htmlFor="sector">Sector *</Label>
                   <Select value={sector} onValueChange={setSector} required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select investment sector" />
+                      <SelectValue placeholder="Select sector" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="technology">Technology</SelectItem>
@@ -208,27 +174,15 @@ const SubmitIdea = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="description">Description *</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={generateAISummary}
-                      disabled={aiLoading}
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      {aiLoading ? 'Analyzing...' : 'AI Insights'}
-                    </Button>
-                  </div>
+                  <Label htmlFor="description">Description *</Label>
                   <RichTextEditor
                     value={description}
                     onChange={setDescription}
-                    placeholder="Describe the investment opportunity, market potential, risks, competitive landscape, and why this is a good investment..."
+                    placeholder="Describe your idea, its potential, risks, competitive landscape, and why this is a good opportunity..."
                     className="min-h-[200px]"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Include details about the opportunity, market size, competitive advantages, potential risks, and expected returns.
+                    Include details about the opportunity, market size, competitive advantages, potential risks, and expected outcomes.
                   </p>
                 </div>
 

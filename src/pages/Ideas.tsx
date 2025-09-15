@@ -37,6 +37,7 @@ const Ideas = () => {
   const [loading, setLoading] = useState(true);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [userHasGroups, setUserHasGroups] = useState(true);
+  const [userGroupCount, setUserGroupCount] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,11 +54,13 @@ const Ideas = () => {
       const { data } = await supabase
         .from('group_members')
         .select('group_id')
-        .eq('user_id', user.id)
-        .limit(1);
+        .eq('user_id', user.id);
       
-      const hasGroups = (data || []).length > 0;
+      const groupCount = (data || []).length;
+      const hasGroups = groupCount > 0;
+      
       setUserHasGroups(hasGroups);
+      setUserGroupCount(groupCount);
       
       // Auto-open group selector if user has no groups
       if (!hasGroups && !showGroupSelector) {
@@ -76,9 +79,9 @@ const Ideas = () => {
       if (selectedGroupId) {
         query = query.eq('group_id', selectedGroupId);
       } else if (user) {
-        // Show ideas from all user's groups or global ideas
+        // Show ideas from all user's groups
         const userGroupIds = await getUserGroupIds();
-        query = query.or(`group_id.is.null,group_id.in.(${userGroupIds})`);
+        query = query.in('group_id', userGroupIds);
       }
 
       const { data: ideasData, error } = await query;
@@ -245,7 +248,7 @@ const Ideas = () => {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 md:mb-8">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold">Investment Ideas</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold">Ideas</h1>
                 <div className="flex items-center gap-2">
                   {selectedGroupName ? (
                     <Badge variant="outline" className="text-xs sm:text-sm">
@@ -254,18 +257,20 @@ const Ideas = () => {
                   ) : (
                     <Badge variant="outline" className="text-xs sm:text-sm">All Groups</Badge>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setShowGroupSelector(true)}
-                    className="text-xs sm:text-sm"
-                  >
-                    Switch Workspace
-                  </Button>
+                  {userGroupCount > 1 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowGroupSelector(true)}
+                      className="text-xs sm:text-sm"
+                    >
+                      Switch Workspace
+                    </Button>
+                  )}
                 </div>
               </div>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Collaborative deal flow and idea evaluation pipeline
+                Collaborative idea evaluation and management pipeline
               </p>
             </div>
             <Button asChild className="w-full sm:w-auto">
@@ -278,7 +283,7 @@ const Ideas = () => {
         )}
 
         <Tabs defaultValue="all" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 gap-1">
             <TabsTrigger value="all" className="text-xs md:text-sm">All ({ideas.length})</TabsTrigger>
             <TabsTrigger value="proposed" className="text-xs md:text-sm">Proposed ({filterIdeasByStatus('proposed').length})</TabsTrigger>
             <TabsTrigger value="under_review" className="text-xs md:text-sm">Review ({filterIdeasByStatus('under_review').length})</TabsTrigger>

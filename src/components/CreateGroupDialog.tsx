@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useGroupContext } from '@/hooks/useGroupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ interface CreateGroupDialogProps {
 
 const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) => {
   const { user } = useAuth();
+  const { setSelectedGroupId, setSelectedGroupName } = useGroupContext();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -86,9 +88,13 @@ const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) => {
         invite_code: groupData.invite_code
       });
 
+      // Automatically select the newly created group
+      setSelectedGroupId(groupData.id);
+      setSelectedGroupName(groupData.name);
+
       toast({
         title: "Group created successfully!",
-        description: `${formData.name} is ready for members.`,
+        description: `${formData.name} is ready for members and has been selected.`,
       });
 
       onGroupCreated?.();
@@ -188,7 +194,7 @@ const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) => {
         <DialogHeader>
           <DialogTitle>Create New Group</DialogTitle>
           <DialogDescription>
-            Create a new workspace for your team to collaborate on investment ideas.
+            Create a new workspace for your team to collaborate on ideas.
           </DialogDescription>
         </DialogHeader>
         
@@ -199,7 +205,7 @@ const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) => {
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., Beyond IT Investment Club"
+              placeholder="e.g., Beyond IT Ideas Club"
               required
             />
           </div>

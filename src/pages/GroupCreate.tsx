@@ -28,7 +28,7 @@ const GroupCreate = () => {
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-3xl font-bold mb-4">Create New Group</h1>
           <p className="text-muted-foreground mb-8">
-            Set up a new workspace for your team to collaborate on investment ideas.
+            Set up a new workspace for your team to collaborate on ideas.
           </p>
           
           <CreateGroupDialog onGroupCreated={() => navigate('/')} />

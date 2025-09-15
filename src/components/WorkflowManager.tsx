@@ -56,7 +56,7 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
     { value: 'proposed', label: 'Proposed', description: 'Initial idea submission' },
     { value: 'under_review', label: 'Under Review', description: 'Being evaluated by the community' },
     { value: 'validated', label: 'Validated', description: 'Passed evaluation criteria' },
-    { value: 'investment_ready', label: 'Investment Ready', description: 'Ready for investment consideration' }
+    { value: 'investment_ready', label: 'Ready', description: 'Ready for consideration' }
   ];
 
   useEffect(() => {
@@ -167,7 +167,7 @@ const WorkflowManager = ({ ideaId, currentStatus, onStatusChange }: WorkflowMana
         'Minimum 5 evaluations submitted',
         'Average composite score ≥ 12/20 (60%)',
         'At least one key risk addressed in comments',
-        'Initial financial snapshot provided (investment needs, ROI, timeline)'
+        'Initial financial snapshot provided (needs, ROI, timeline)'
       ],
       'validated->investment_ready': [
         'Validation tasks completed by working group',

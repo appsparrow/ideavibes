@@ -1,73 +1,258 @@
-# Welcome to your Lovable project
+# 🚀 IdeaVibes - Investment Idea Management Platform
 
-## Project info
+A comprehensive platform for managing investment ideas, group collaboration, and meeting workflows with AI-powered features.
 
-**URL**: https://lovable.dev/projects/75bb832d-0f80-4363-8364-ffa75f8282f1
+## ✨ Features
 
-## How can I edit this code?
+### 🎯 **Core Functionality**
+- **Investment Idea Management**: Submit, review, and track investment opportunities
+- **Group Collaboration**: Create and manage investment groups with role-based access
+- **Meeting Management**: Schedule meetups with AI-powered note-taking and summaries
+- **Document Management**: Attach and organize documents for each idea
+- **User Roles**: Admin, Moderator, and Member roles with different permissions
 
-There are several ways of editing your application.
+### 💰 **Subscription Tiers**
 
-**Use Lovable**
+#### **Free Tier**
+- Create up to **1 group**
+- Join **unlimited groups**
+- **2 AI summaries** per month
+- Basic meeting notes
+- Community support
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/75bb832d-0f80-4363-8364-ffa75f8282f1) and start prompting.
+#### **Pro Tier** ($12/month)
+- Create **unlimited groups**
+- Join **unlimited groups**
+- **Unlimited AI summaries**
+- Rich text editing for meetings
+- Meeting feedback surveys
+- Export capabilities
+- Priority support
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🤖 **AI-Powered Features**
+- **Automatic Meeting Summaries**: AI generates comprehensive summaries from meeting notes
+- **Smart Note Processing**: Intelligent formatting and organization of meeting content
+- **Action Item Extraction**: Automatically identifies and tracks action items
+- **Usage Tracking**: Monitor AI feature usage with monthly limits for free users
 
-**Use your preferred IDE**
+### 👥 **Group Management**
+- **Group Creation**: Pro users can create unlimited groups, Free users limited to 1
+- **Invite System**: Share groups via invite codes
+- **Role Management**: Admin and Member roles within groups
+- **Member Management**: Add/remove members with confirmation dialogs
+- **Group Scoping**: Ideas, meetings, and documents are scoped to groups
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 📊 **Meeting & Collaboration**
+- **Meeting Scheduling**: Schedule meetups with agenda and notes
+- **Real-time Notes**: Collaborative note-taking during meetings
+- **AI Summaries**: Automatic generation of meeting summaries
+- **Feedback Surveys**: Collect post-meeting feedback (Pro feature)
+- **Action Items**: Track and manage follow-up tasks
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🔒 **Security & Permissions**
+- **Row Level Security (RLS)**: Database-level security policies
+- **Role-based Access**: Different permissions for Admin, Moderator, Member
+- **Group Isolation**: Users only see content from their groups
+- **Confirmation Dialogs**: All destructive actions require confirmation
 
-Follow these steps:
+### 📱 **User Experience**
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Modern UI**: Built with shadcn/ui components and Tailwind CSS
+- **Real-time Updates**: Live data synchronization
+- **Toast Notifications**: User feedback for all actions
+- **Loading States**: Proper loading indicators throughout
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🛠️ **Technology Stack**
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### **Frontend**
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **React Router v6** with future flags enabled
+- **shadcn/ui** component library
+- **Tailwind CSS** for styling
+- **Radix UI** primitives for accessibility
 
-# Step 3: Install the necessary dependencies.
-npm i
+### **Backend & Database**
+- **Supabase** for backend-as-a-service
+- **PostgreSQL** database with Row Level Security
+- **Real-time subscriptions** for live updates
+- **Edge Functions** for AI processing
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### **State Management**
+- **React Query** for server state management
+- **React Context** for client state
+- **Custom hooks** for data fetching and management
+
+### **AI & Integrations**
+- **OpenAI API** for AI summaries and processing
+- **Stripe** for subscription management (ready for integration)
+- **Google Drive** integration for document management
+
+## 🚀 **Getting Started**
+
+### **Prerequisites**
+- Node.js 18+ and npm
+- Supabase account and project
+- OpenAI API key (for AI features)
+
+### **Installation**
+
+1. **Clone the repository**
+   ```bash
+   git clone <YOUR_GIT_URL>
+   cd ideavibes
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Add your environment variables:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_OPENAI_API_KEY=your_openai_api_key
+   ```
+
+4. **Set up the database**
+   
+   Run the database setup scripts in your Supabase SQL editor:
+   
+   **First, run the main database updates:**
+   ```sql
+   -- Copy and paste the content from database-updates.sql
+   ```
+   
+   **Then, run the Stripe integration setup:**
+   ```sql
+   -- Copy and paste the content from stripe-integration-setup.sql
+   ```
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   Navigate to `http://localhost:5173`
+
+## 📋 **Database Setup**
+
+The application requires several database tables and policies. Run these SQL scripts in order:
+
+### **1. Main Database Updates** (`database-updates.sql`)
+- Adds subscription columns to profiles table
+- Creates usage tracking table for free tier limits
+- Sets up meeting feedback system
+- Creates AI summary support
+
+### **2. Stripe Integration** (`stripe-integration-setup.sql`)
+- Adds Stripe-specific columns
+- Creates subscription events table
+- Sets up RLS policies for subscription management
+
+## 🎨 **UI Components**
+
+Built with **shadcn/ui** components:
+- **Forms**: Input, Textarea, Select, Checkbox, Radio
+- **Navigation**: Tabs, Breadcrumb, Navigation Menu
+- **Data Display**: Table, Card, Badge, Avatar
+- **Feedback**: Toast, Alert, Progress, Skeleton
+- **Overlay**: Dialog, Sheet, Popover, Tooltip
+- **Layout**: Separator, Scroll Area, Resizable
+
+## 🔧 **Development**
+
+### **Available Scripts**
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
 ```
 
-**Edit a file directly in GitHub**
+### **Project Structure**
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   └── layout/         # Layout components
+├── hooks/              # Custom React hooks
+├── integrations/       # External service integrations
+├── pages/              # Page components
+└── lib/                # Utility functions
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🚀 **Deployment**
 
-**Use GitHub Codespaces**
+### **Deploy with Lovable**
+1. Open [Lovable Project](https://lovable.dev/projects/75bb832d-0f80-4363-8364-ffa75f8282f1)
+2. Click **Share → Publish**
+3. Configure your domain in **Project → Settings → Domains**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### **Deploy to Cloudflare Pages**
+The project is configured for Cloudflare Pages deployment with:
+- **Babel-based React plugin** (not SWC) for compatibility
+- **Simple Vite configuration** without complex optimizations
+- **Proven deployment setup** that works reliably
 
-## What technologies are used for this project?
+## 🔒 **Security Features**
 
-This project is built with:
+- **Row Level Security (RLS)** on all database tables
+- **Authentication** via Supabase Auth
+- **Role-based permissions** (Admin, Moderator, Member)
+- **Group isolation** - users only see their group content
+- **Confirmation dialogs** for all destructive actions
+- **Input validation** and sanitization
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📊 **Usage Tracking**
 
-## How can I deploy this project?
+The platform tracks usage for free tier limits:
+- **AI Summaries**: 2 per month for free users
+- **Group Creation**: 1 group for free users
+- **Meeting Creation**: Unlimited for all users
+- **Document Uploads**: Unlimited for all users
 
-Simply open [Lovable](https://lovable.dev/projects/75bb832d-0f80-4363-8364-ffa75f8282f1) and click on Share -> Publish.
+## 🤝 **Contributing**
 
-## Can I connect a custom domain to my Lovable project?
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Yes, you can!
+## 📄 **License**
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🆘 **Support**
+
+- **Documentation**: Check the `/docs` folder for detailed guides
+- **Issues**: Report bugs via GitHub Issues
+- **Discussions**: Join GitHub Discussions for questions
+- **Email**: Contact support for Pro tier users
+
+## 🔮 **Roadmap**
+
+### **Upcoming Features**
+- [ ] **Mobile App**: React Native version
+- [ ] **Advanced Analytics**: Detailed usage and performance metrics
+- [ ] **API Integration**: RESTful API for third-party integrations
+- [ ] **White-label**: Customizable branding for enterprise clients
+- [ ] **Advanced AI**: More sophisticated AI features and custom models
+
+### **Planned Improvements**
+- [ ] **Performance**: Optimize bundle size and loading times
+- [ ] **Accessibility**: Enhanced screen reader support
+- [ ] **Internationalization**: Multi-language support
+- [ ] **Offline Support**: Progressive Web App capabilities
+
+---
+
+**Built with ❤️ using React, TypeScript, and Supabase**
