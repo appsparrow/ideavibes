@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Phone, Mail, Camera, Tag, Briefcase } from 'lucide-react';
+import { User, Phone, Mail, Camera, Tag, Briefcase, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/layout/Layout';
 
@@ -27,6 +27,13 @@ interface EnhancedProfile {
   role?: string;
   subscription_tier?: string | null;
   subscription_expires_at?: string | null;
+  organization_id?: string | null;
+  organization?: {
+    id: string;
+    name: string;
+    type: 'organization' | 'individual';
+  } | null;
+  organization_role?: string;
 }
 
 function EnhancedProfile() {
@@ -36,10 +43,15 @@ function EnhancedProfile() {
   const [saving, setSaving] = useState(false);
   const [newSkill, setNewSkill] = useState('');
   const [newExpertise, setNewExpertise] = useState('');
+  const [userGroups, setUserGroups] = useState<Array<{id: string, name: string, role: string}>>([]);
+  const [organizationName, setOrganizationName] = useState('BeyondIt');
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchUserGroups();
+      fetchOrganizationInfo();
     }
   }, [user]);
 
@@ -47,19 +59,143 @@ function EnhancedProfile() {
     if (!user) return;
 
     try {
+      // Use simple profile query to avoid database relationship errors
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, subscription_tier, subscription_expires_at')
+        .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
       if (error) throw error;
-      setProfile(data);
+      
+      // Transform the data to match our interface with hardcoded BeyondIT organization
+      const profileData = data ? {
+        ...data,
+        organization: {
+          id: '00000000-0000-0000-0000-000000000001',
+          name: 'BeyondIT',
+          type: 'organization' as const
+        },
+        organization_role: data.role === 'admin' ? 'admin' : 'member'
+      } : null;
+      
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserGroups = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select(`
+          group_id,
+          role,
+          groups!inner(
+            id,
+            name
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const groups = data?.map(item => ({
+        id: item.groups.id,
+        name: item.groups.name,
+        role: item.role
+      })) || [];
+
+      setUserGroups(groups);
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      // Don't show error toast for groups as it's not critical
+    }
+  };
+
+  const fetchOrganizationInfo = async () => {
+    if (!user) return;
+
+    try {
+      console.log('Fetching organization info for user:', user.id);
+      
+      // Get user's organization from profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id, account_type')
+        .eq('id', user.id)
+        .single();
+      
+      console.log('Profile data:', profileData);
+      
+      if (profileData?.organization_id) {
+        // User has an organization, fetch its details
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .eq('id', profileData.organization_id)
+          .single();
+        
+        if (orgData) {
+          setOrganizationId(orgData.id);
+          setOrganizationName(orgData.name);
+          console.log('Set organization:', orgData.name);
+        } else {
+          console.log('Organization not found, user is independent');
+          setOrganizationId(null);
+          setOrganizationName('No Organization');
+        }
+      } else {
+        // User is independent (no organization)
+        console.log('User is independent (no organization)');
+        setOrganizationId(null);
+        setOrganizationName('Independent User');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching organization info:', error);
+      // Fallback for independent users
+      setOrganizationName('Independent User');
+      setOrganizationId(null);
+      console.log('Fallback to independent user');
+    }
+  };
+
+  const updateOrganizationName = async () => {
+    if (!user || !organizationId || profile?.role !== 'admin') {
+      console.log('Update blocked:', { user: !!user, organizationId, role: profile?.role });
+      return;
+    }
+
+    try {
+      console.log('Updating organization:', { id: organizationId, name: organizationName });
+      
+      const { data, error } = await supabase
+        .from('organizations')
+        .update({ 
+          name: organizationName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', organizationId)
+        .select();
+
+      console.log('Update result:', { data, error });
+
+      if (error) throw error;
+
+      toast.success('Organization name updated successfully');
+      
+      // Refresh organization info to confirm the update
+      await fetchOrganizationInfo();
+    } catch (error) {
+      console.error('Error updating organization name:', error);
+      toast.error('Failed to update organization name. Please run the RLS fix SQL script.');
     }
   };
 
@@ -156,21 +292,47 @@ function EnhancedProfile() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">Enhanced Profile</h1>
-          {profile.subscription_tier === 'pro' && 
-           (!profile.subscription_expires_at || new Date(profile.subscription_expires_at) > new Date()) && (
-            <Badge className="bg-gradient-to-r from-purple-500 to-blue-600 text-white">
-              PRO
-            </Badge>
-          )}
+    <Layout>
+      <div className="container mx-auto py-8 space-y-6">
+        {/* Profile Header Section */}
+        <div className="bg-white border rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={profile.profile_photo_url} />
+                  <AvatarFallback className="text-lg">
+                    {((profile.first_name || profile.name || 'U').charAt(0) +
+                      (profile.last_name || '').charAt(0)).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {profile.first_name && profile.last_name 
+                      ? `${profile.first_name} ${profile.last_name}`
+                      : profile.name || 'User Profile'
+                    }
+                  </h1>
+                  <p className="text-sm text-gray-600">{profile.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {profile.role || 'member'}
+                </Badge>
+                {profile.subscription_tier === 'pro' && 
+                 (!profile.subscription_expires_at || new Date(profile.subscription_expires_at) > new Date()) && (
+                  <Badge className="bg-gradient-to-r from-purple-500 to-blue-600 text-white">
+                    PRO
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <Button onClick={updateProfile} disabled={saving} className="ml-4">
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
-        <Button onClick={updateProfile} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Photo & Basic Info */}
@@ -271,6 +433,41 @@ function EnhancedProfile() {
         </div>
       </div>
 
+      {/* Group Memberships - View Only */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Group Memberships
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Your group memberships and roles. To edit group details, go to the Groups page.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {userGroups.length > 0 ? (
+            <div className="space-y-3">
+              {userGroups.map((group) => (
+                <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{group.name}</p>
+                    <p className="text-sm text-muted-foreground">Group Member</p>
+                  </div>
+                  <Badge variant={group.role === 'admin' ? 'default' : 'outline'}>
+                    {group.role}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No group memberships</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Professional Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expertise Tags */}
@@ -355,20 +552,112 @@ function EnhancedProfile() {
       {/* Account Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Account Information
+          </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          {/* Role Information */}
           <div>
-            <Label className="text-sm font-medium">Role</Label>
-            <p className="capitalize">{profile.role || 'member'}</p>
+            <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="capitalize">
+                {profile.role || 'member'}
+              </Badge>
+              <p className="text-sm text-muted-foreground">
+                Your role determines what you can access and manage in the platform
+              </p>
+            </div>
           </div>
-          <div>
-            <Label className="text-sm font-medium">Investor Type</Label>
-            <p className="capitalize">{profile.investor_type || 'passive'}</p>
+          
+          {/* Organization Information */}
+          <div className="border-t pt-4">
+            <Label className="text-sm font-medium text-muted-foreground">Organization</Label>
+            <div className="mt-2 space-y-3">
+              {organizationId ? (
+                // User has an organization
+                profile.role === 'admin' ? (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="org-name">Organization Name</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="org-name"
+                          value={organizationName}
+                          onChange={(e) => setOrganizationName(e.target.value)}
+                          placeholder="Enter organization name"
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={updateOrganizationName}
+                          size="sm"
+                          disabled={saving}
+                        >
+                          {saving ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-sm">
+                        Organization Admin
+                      </Badge>
+                      <p className="text-xs text-green-600">
+                        ✓ As an admin, you can edit organization details
+                      </p>
+                      <Button 
+                        onClick={fetchOrganizationInfo}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-sm">
+                        Organization Member
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {organizationName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Organization details can only be edited by administrators
+                    </p>
+                  </div>
+                )
+              ) : (
+                // User is independent (no organization)
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-sm">
+                      Independent User
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    You're not part of any organization yet
+                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      You can:
+                    </p>
+                    <ul className="text-xs text-muted-foreground space-y-1 ml-4">
+                      <li>• Create and join groups independently</li>
+                      <li>• Upgrade to organization admin for team features</li>
+                      <li>• Join an existing organization with an invite code</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </Layout>
   );
 }
 

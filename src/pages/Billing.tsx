@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Star, Zap, Users, Bot, BarChart3 } from 'lucide-react';
+import { CheckCircle, Star, Zap, Users, Bot, BarChart3, Clock, DollarSign, Coffee, Calculator } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import PageHeader from '@/components/layout/PageHeader';
 import { toast } from 'sonner';
 
 interface UserProfile {
@@ -17,6 +18,56 @@ const Billing = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Calculator State
+  const [selectedFrequency, setSelectedFrequency] = useState('weekly');
+  const [selectedTeamSize, setSelectedTeamSize] = useState('small');
+  
+  const frequencies = {
+    daily: { label: 'Daily', multiplier: 30 },
+    weekly: { label: 'Weekly', multiplier: 4 },
+    monthly: { label: 'Monthly', multiplier: 1 }
+  };
+  
+  const teamSizes = {
+    small: { label: 'Small Team', attendees: 6, description: '2-10 people' },
+    large: { label: 'Large Team', attendees: 18, description: '10-25 people' }
+  };
+
+  // Calculate savings based on selected frequency and team size
+  const calculateSavings = () => {
+    const frequency = frequencies[selectedFrequency as keyof typeof frequencies];
+    const teamSize = teamSizes[selectedTeamSize as keyof typeof teamSizes];
+    
+    const meetingsPerMonth = frequency.multiplier;
+    const averageAttendance = teamSize.attendees;
+    
+    // Base time savings per meeting (minutes)
+    const noteTakingTime = 15; // minutes per attendee
+    const followUpTime = 30; // minutes for organizer
+    const communicationTime = 18; // minutes for organizer
+    const ideaCaptureTime = 15; // minutes for organizer
+    
+    // Total overhead time per meeting
+    const overheadPerMeeting = (noteTakingTime * averageAttendance) + followUpTime + communicationTime + ideaCaptureTime;
+    
+    // Monthly time spent (in hours)
+    const monthlyTimeHours = (overheadPerMeeting * meetingsPerMonth) / 60;
+    
+    // IdeaFlow saves 90% of this time
+    const hoursSaved = Math.round(monthlyTimeHours * 0.9 * 10) / 10;
+    
+    return {
+      hoursSaved,
+      meetingsPerMonth,
+      averageAttendance,
+      frequencyLabel: frequency.label,
+      teamSizeLabel: teamSize.label,
+      teamSizeDescription: teamSize.description
+    };
+  };
+
+  const savings = calculateSavings();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -170,12 +221,11 @@ const Billing = () => {
   return (
     <Layout>
       <div className="container mx-auto py-8 space-y-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">Billing & Plans</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Choose the plan that fits your team's needs. Upgrade anytime to unlock powerful collaboration features.
-          </p>
-        </div>
+        <PageHeader
+          title="Billing & Plans"
+          subtitle="Choose the plan that fits your team's needs. Upgrade anytime to unlock powerful collaboration features."
+          className="text-center"
+        />
 
         {/* Current Subscription Status */}
         {profile && (
@@ -308,63 +358,97 @@ const Billing = () => {
           ))}
         </div>
 
-        {/* Feature Comparison */}
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Feature Comparison</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Feature</th>
-                      <th className="text-center py-2">Free</th>
-                      <th className="text-center py-2">Pro</th>
-                    </tr>
-                  </thead>
-                  <tbody className="space-y-2">
-                    <tr className="border-b">
-                      <td className="py-3">Members</td>
-                      <td className="text-center">Up to 5</td>
-                      <td className="text-center">Up to 50</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3">Meetings per Month</td>
-                      <td className="text-center">3</td>
-                      <td className="text-center">Unlimited</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3">AI Summaries per Month</td>
-                      <td className="text-center">2</td>
-                      <td className="text-center">Every meeting</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3">Meeting Feedback</td>
-                      <td className="text-center">❌</td>
-                      <td className="text-center">✅</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3">Rich Text Editing</td>
-                      <td className="text-center">❌</td>
-                      <td className="text-center">✅</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        
 
-        {/* Contact Support */}
-        <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <h3 className="text-xl font-semibold">Need a custom plan?</h3>
-          <p className="text-muted-foreground">
-            For enterprise customers or teams with special requirements, contact our sales team.
-          </p>
-          <Button variant="outline">Contact Sales</Button>
-        </div>
+        {/* Time Savings Calculator */}
+        <Card className="max-w-2xl mx-auto border border-gray-200">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-gray-900">
+              <Zap className="h-5 w-5 text-gray-600" />
+              Time Savings Calculator
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              See how many hours IdeaFlow can save your team each month
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Frequency Selection */}
+            <div className="space-y-4">
+              <h4 className="text-center font-medium text-gray-700">Meeting frequency:</h4>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {Object.entries(frequencies).map(([key, frequency]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedFrequency(key)}
+                    className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 ${
+                      selectedFrequency === key
+                        ? 'bg-gray-900 text-white shadow-lg transform scale-105'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-semibold">{frequency.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Team Size Selection */}
+            <div className="space-y-4">
+              <h4 className="text-center font-medium text-gray-700">Team size:</h4>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {Object.entries(teamSizes).map(([key, teamSize]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedTeamSize(key)}
+                    className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 ${
+                      selectedTeamSize === key
+                        ? 'bg-gray-900 text-white shadow-lg transform scale-105'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-semibold">{teamSize.label}</div>
+                    <div className="text-xs opacity-80">{teamSize.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Results */}
+            <div className="text-center space-y-4">
+              <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-4xl font-bold text-gray-900 mb-2">
+                  {savings.hoursSaved} hours
+                </div>
+                <div className="text-lg text-gray-600 mb-1">saved per month</div>
+                <div className="text-sm text-gray-500">
+                  {savings.frequencyLabel} meetings × {savings.averageAttendance} attendees
+                </div>
+              </div>
+
+              {/* Coffee Comparison */}
+              <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-center gap-2 text-lg font-semibold text-gray-800">
+                  <Coffee className="h-5 w-5 text-gray-600" />
+                  <span>For the price of 2 cups of coffee</span>
+                  <Coffee className="h-5 w-5 text-gray-600" />
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  You save {savings.hoursSaved} hours worth way more than $12!
+                </p>
+              </div>
+
+              {/* Value Proposition */}
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="text-lg font-semibold text-gray-800 mb-1">
+                  That's {Math.round(savings.hoursSaved * 12)} hours per year!
+                </div>
+                <p className="text-sm text-gray-600">
+                  Focus on what matters instead of meeting overhead
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );

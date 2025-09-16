@@ -15,7 +15,8 @@ import {
   Shield,
   Activity
 } from 'lucide-react';
-import Header from '@/components/layout/Header';
+import Layout from '@/components/layout/Layout';
+import PageHeader from '@/components/layout/PageHeader';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
@@ -26,6 +27,10 @@ interface UserProfile {
   investor_type: string;
   created_at: string;
   profile: string | null;
+  organization_id: string | null;
+  organization_name?: string;
+  organization_type?: string;
+  organization_role?: string;
 }
 
 interface UserActivity {
@@ -52,15 +57,33 @@ const Users = () => {
 
   const fetchUsersData = async () => {
     try {
-      // Fetch all user profiles
+      // Fetch all user profiles with organization information
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          organizations (
+            id,
+            name,
+            type
+          ),
+          organization_members (
+            role
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
 
-      setUsers(usersData || []);
+      // Transform the data to include organization info
+      const transformedUsers = (usersData || []).map(user => ({
+        ...user,
+        organization_name: user.organizations?.name,
+        organization_type: user.organizations?.type,
+        organization_role: user.organization_members?.[0]?.role
+      }));
+
+      setUsers(transformedUsers);
 
       // Fetch user activities
       const userIds = usersData?.map(u => u.id) || [];
@@ -144,31 +167,24 @@ const Users = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Community Members</h1>
-              <p className="text-muted-foreground">
-                Track participation and engagement across the community
-              </p>
-            </div>
-          </div>
+          <PageHeader
+            title="Community Members"
+            subtitle="Track participation and engagement across the community"
+          />
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
@@ -206,6 +222,23 @@ const Users = () => {
                             <Mail className="h-3 w-3" />
                             {userProfile.email}
                           </div>
+                          {userProfile.organization_name && (
+                            <div className="flex items-center gap-1 mb-1">
+                              <Shield className="h-3 w-3" />
+                              {userProfile.organization_name}
+                              {userProfile.organization_type && (
+                                <Badge variant="outline" className="text-xs ml-1">
+                                  {userProfile.organization_type}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          {userProfile.organization_role && (
+                            <div className="flex items-center gap-1 mb-1">
+                              <UsersIcon className="h-3 w-3" />
+                              {userProfile.organization_role} in Organization
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
                             <Activity className="h-3 w-3" />
                             {engagement.level} Engagement
@@ -265,6 +298,8 @@ const Users = () => {
                           <th className="text-left p-2">Email</th>
                           <th className="text-left p-2">Role</th>
                           <th className="text-left p-2">Type</th>
+                          <th className="text-left p-2">Organization</th>
+                          <th className="text-left p-2">Org Role</th>
                           <th className="text-left p-2">Ideas</th>
                           <th className="text-left p-2">Comments</th>
                           <th className="text-left p-2">Votes</th>
@@ -288,6 +323,30 @@ const Users = () => {
                                 <Badge className={getInvestorTypeColor(userProfile.investor_type)} variant="secondary">
                                   {userProfile.investor_type}
                                 </Badge>
+                              </td>
+                              <td className="p-2">
+                                {userProfile.organization_name ? (
+                                  <div className="flex items-center gap-1">
+                                    <Shield className="h-3 w-3" />
+                                    <span className="text-sm">{userProfile.organization_name}</span>
+                                    {userProfile.organization_type && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {userProfile.organization_type}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">No Organization</span>
+                                )}
+                              </td>
+                              <td className="p-2">
+                                {userProfile.organization_role ? (
+                                  <Badge variant="outline" className="text-xs">
+                                    {userProfile.organization_role}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
                               </td>
                               <td className="p-2 text-center">{activity?.ideas_submitted || 0}</td>
                               <td className="p-2 text-center">{activity?.comments_posted || 0}</td>
@@ -392,8 +451,8 @@ const Users = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

@@ -18,7 +18,8 @@ import {
   Plus,
   BarChart3
 } from 'lucide-react';
-import Header from '@/components/layout/Header';
+import Layout from '@/components/layout/Layout';
+import PageHeader from '@/components/layout/PageHeader';
 import GroupSelector from '@/components/GroupSelector';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,7 +34,7 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { selectedGroupId, setSelectedGroupId, selectedGroupName, setSelectedGroupName } = useGroupContext();
   const [stats, setStats] = useState<DashboardStats>({
     totalIdeas: 0,
@@ -91,6 +92,9 @@ const Dashboard = () => {
       let totalIdeasQuery = supabase.from('ideas').select('*', { count: 'exact', head: true });
       if (selectedGroupId) {
         totalIdeasQuery = totalIdeasQuery.eq('group_id', selectedGroupId);
+      } else if (isAdmin) {
+        // Admins can see ALL ideas across the organization
+        // No group filtering - show everything
       } else {
         const userGroupIds = await getUserGroupIds();
         totalIdeasQuery = totalIdeasQuery.or(`group_id.is.null,group_id.in.(${userGroupIds})`);
@@ -101,6 +105,9 @@ const Dashboard = () => {
       let myIdeasQuery = supabase.from('ideas').select('*', { count: 'exact', head: true }).eq('submitted_by', user!.id);
       if (selectedGroupId) {
         myIdeasQuery = myIdeasQuery.eq('group_id', selectedGroupId);
+      } else if (isAdmin) {
+        // Admins can see ALL their ideas across the organization
+        // No group filtering - show everything
       }
       const { count: myIdeas } = await myIdeasQuery;
 
@@ -258,22 +265,19 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Group Selector */}
           {showGroupSelector ? (
@@ -284,41 +288,46 @@ const Dashboard = () => {
               />
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold">Idea Board</h1>
-                  <div className="flex items-center gap-2">
-                    {selectedGroupName ? (
-                      <Badge variant="outline" className="text-xs sm:text-sm">
-                        {selectedGroupName}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs sm:text-sm">All Groups</Badge>
-                    )}
-                    {userGroupCount > 1 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setShowGroupSelector(true)}
-                        className="text-xs sm:text-sm"
-                      >
-                        Switch Workspace
-                      </Button>
-                    )}
-                  </div>
+            <PageHeader
+              title="Idea Board"
+              subtitle={isAdmin && !selectedGroupName 
+                ? "Administrative dashboard - All ideas across the organization" 
+                : "Track your ideas, evaluations, and opportunities"
+              }
+              badge={
+                <div className="flex items-center gap-2">
+                  {selectedGroupName ? (
+                    <Badge variant="outline" className="text-xs sm:text-sm">
+                      {selectedGroupName}
+                    </Badge>
+                  ) : isAdmin ? (
+                    <Badge variant="default" className="text-xs sm:text-sm bg-red-600">
+                      Admin View - All Ideas
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs sm:text-sm">All Groups</Badge>
+                  )}
+                  {userGroupCount > 1 && !isAdmin && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowGroupSelector(true)}
+                      className="text-xs sm:text-sm"
+                    >
+                      Switch Workspace
+                    </Button>
+                  )}
                 </div>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Track your ideas, evaluations, and opportunities
-                </p>
-              </div>
-              <Button asChild className="w-full sm:w-auto">
-                <Link to="/submit-idea">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Submit Idea
-                </Link>
-              </Button>
-            </div>
+              }
+              actions={
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to="/submit-idea">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Submit Idea
+                  </Link>
+                </Button>
+              }
+            />
           )}
 
           {/* Stats Overview */}
@@ -553,8 +562,8 @@ const Dashboard = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

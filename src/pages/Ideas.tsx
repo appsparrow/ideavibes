@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, MessageSquare, TrendingUp, Users, Calendar } from 'lucide-react';
-import Header from '@/components/layout/Header';
+import Layout from '@/components/layout/Layout';
+import PageHeader from '@/components/layout/PageHeader';
 import GroupSelector from '@/components/GroupSelector';
+import BulkPDFExport from '@/components/BulkPDFExport';
 import { useToast } from '@/hooks/use-toast';
 import { RichTextDisplay } from '@/components/ui/rich-text-display';
 
@@ -30,7 +32,7 @@ interface Profile {
 }
 
 const Ideas = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { selectedGroupId, setSelectedGroupId, selectedGroupName, setSelectedGroupName } = useGroupContext();
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
@@ -78,8 +80,11 @@ const Ideas = () => {
       
       if (selectedGroupId) {
         query = query.eq('group_id', selectedGroupId);
+      } else if (user && isAdmin) {
+        // Admins can see ALL ideas across the organization
+        // No group filtering - show everything
       } else if (user) {
-        // Show ideas from all user's groups
+        // Regular users see ideas from their groups only
         const userGroupIds = await getUserGroupIds();
         query = query.in('group_id', userGroupIds);
       }
@@ -220,22 +225,19 @@ const Ideas = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         {/* Group Selector */}
         {showGroupSelector ? (
           <div className="mb-8">
@@ -245,41 +247,40 @@ const Ideas = () => {
             />
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 md:mb-8">
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold">Ideas</h1>
-                <div className="flex items-center gap-2">
-                  {selectedGroupName ? (
-                    <Badge variant="outline" className="text-xs sm:text-sm">
-                      {selectedGroupName}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs sm:text-sm">All Groups</Badge>
-                  )}
-                  {userGroupCount > 1 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setShowGroupSelector(true)}
-                      className="text-xs sm:text-sm"
-                    >
-                      Switch Workspace
-                    </Button>
-                  )}
-                </div>
+          <PageHeader
+            title="Ideas"
+            subtitle={isAdmin && !selectedGroupName 
+              ? "Administrative view - All ideas across the organization" 
+              : "Collaborative idea evaluation and management pipeline"
+            }
+            badge={selectedGroupName 
+              ? selectedGroupName 
+              : isAdmin 
+                ? "Admin View - All Ideas" 
+                : "All Groups"
+            }
+            actions={
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                {userGroupCount > 1 && !isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowGroupSelector(true)}
+                    className="text-xs sm:text-sm"
+                  >
+                    Switch Workspace
+                  </Button>
+                )}
+                <BulkPDFExport ideas={ideas} selectedGroupName={selectedGroupName} />
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to="/submit-idea">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Submit Idea
+                  </Link>
+                </Button>
               </div>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Collaborative idea evaluation and management pipeline
-              </p>
-            </div>
-            <Button asChild className="w-full sm:w-auto">
-              <Link to="/submit-idea">
-                <Plus className="mr-2 h-4 w-4" />
-                Submit Idea
-              </Link>
-            </Button>
-          </div>
+            }
+          />
         )}
 
         <Tabs defaultValue="all" className="space-y-6">
@@ -327,8 +328,8 @@ const Ideas = () => {
             </TabsContent>
           ))}
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

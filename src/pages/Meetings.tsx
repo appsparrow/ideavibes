@@ -16,6 +16,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { RichTextDisplay } from '@/components/ui/rich-text-display';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/layout/Layout';
+import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import FeedbackSurvey from '@/components/FeedbackSurvey';
 
@@ -32,6 +33,9 @@ interface Meetup {
   group_id: string;
   created_at: string;
   updated_at: string | null;
+  groups?: {
+    name: string;
+  };
 }
 
 interface MeetupNote {
@@ -61,6 +65,7 @@ function Meetups() {
   const [othersNotes, setOthersNotes] = useState<MeetupNote[]>([]);
   const [isPaidUser, setIsPaidUser] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const [showAllMeetings, setShowAllMeetings] = useState(false);
   const myNotesRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Form states
@@ -78,7 +83,7 @@ function Meetups() {
       checkUserSubscription();
       checkGroupAdmin();
     }
-  }, [user, selectedGroupId]);
+  }, [user, selectedGroupId, showAllMeetings]);
 
   const checkUserSubscription = async () => {
     if (!user) return;
@@ -150,6 +155,18 @@ function Meetups() {
 
   const fetchMeetups = async () => {
     try {
+      // For admins with showAllMeetings, fetch all meetings across all groups
+      if (isAdmin && showAllMeetings) {
+        const { data, error } = await supabase
+          .from('meetings')
+          .select('*, ai_summary, groups(name)')
+          .order('date', { ascending: false });
+
+        if (error) throw error;
+        setMeetups(data || []);
+        return;
+      }
+
       // Check if user is member of the selected group
       const { data: membershipData } = await supabase
         .from('group_members')
@@ -577,76 +594,105 @@ ${formattedNotes}`
   return (
     <Layout>
       <div className="container mx-auto py-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Meetups</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Group: {selectedGroupName}</p>
-        </div>
-        {(isAdmin || isModerator || isGroupAdmin || isPaidUser) && (
-          <Dialog open={isCreating} onOpenChange={setIsCreating}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto">
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Meetup
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Schedule New Meetup</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
+      <PageHeader
+        title={isAdmin && showAllMeetings ? "All Meetups" : "Meetups"}
+        subtitle={isAdmin && showAllMeetings ? "All groups" : `Group: ${selectedGroupName}`}
+        actions={
+          (isAdmin || isModerator || isGroupAdmin || isPaidUser) && (
+            <Dialog open={isCreating} onOpenChange={setIsCreating}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Schedule Meetup
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Schedule New Meetup</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="time">Time</Label>
+                      <Input
+                        id="time"
+                        type="time"
+                        value={formData.meeting_time}
+                        onChange={(e) => setFormData({ ...formData, meeting_time: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <Label htmlFor="time">Time</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={formData.meeting_time}
-                      onChange={(e) => setFormData({ ...formData, meeting_time: e.target.value })}
+                    <Label htmlFor="agenda">Agenda</Label>
+                    <RichTextEditor
+                      value={formData.agenda}
+                      onChange={(value) => setFormData({ ...formData, agenda: value })}
+                      placeholder="Meetup agenda..."
+                      className="min-h-[120px]"
                     />
                   </div>
-                </div>
-                <div>
-                  <Label htmlFor="agenda">Agenda</Label>
-                  <RichTextEditor
-                    value={formData.agenda}
-                    onChange={(value) => setFormData({ ...formData, agenda: value })}
-                    placeholder="Meetup agenda..."
-                    className="min-h-[120px]"
-                  />
-                </div>
-                  <div>
-                    <Label htmlFor="notes">Initial Notes</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Initial meetup notes..."
-                      className="min-h-[100px]"
-                    />
+                    <div>
+                      <Label htmlFor="notes">Initial Notes</Label>
+                      <Textarea
+                        id="notes"
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        placeholder="Initial meetup notes..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsCreating(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={createMeetup}>
+                      Schedule Meetup
+                    </Button>
                   </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsCreating(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={createMeetup}>
-                    Schedule Meetup
-                  </Button>
                 </div>
+              </DialogContent>
+            </Dialog>
+          )
+        }
+      />
+
+      {/* Admin Workspace Switch */}
+      {isAdmin && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Admin Workspace View</h3>
+                <p className="text-sm text-muted-foreground">
+                  {showAllMeetings 
+                    ? "Viewing all meetups across all groups" 
+                    : "Viewing only meetups from selected group"
+                  }
+                </p>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">My Group Only</span>
+                <Button
+                  variant={showAllMeetings ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowAllMeetings(!showAllMeetings)}
+                >
+                  {showAllMeetings ? "All Meetups" : "My Group"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className={`grid grid-cols-1 ${isMobile ? 'space-y-4' : 'lg:grid-cols-3'} gap-4 md:gap-6`}>
         {/* Meetups List */}
@@ -655,7 +701,7 @@ ${formattedNotes}`
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Meetups
+                {isAdmin && showAllMeetings ? "All Meetups" : "Meetups"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -682,6 +728,11 @@ ${formattedNotes}`
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {meetup.meeting_time}
+                            </p>
+                          )}
+                          {isAdmin && showAllMeetings && meetup.groups && (
+                            <p className="text-xs text-blue-600 font-medium mt-1">
+                              {meetup.groups.name}
                             </p>
                           )}
                         </div>

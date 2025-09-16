@@ -10,7 +10,8 @@ import { Users, Copy, Plus, ExternalLink, Settings, Calendar, Phone, Mail } from
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import Header from '@/components/layout/Header';
+import Layout from '@/components/layout/Layout';
+import PageHeader from '@/components/layout/PageHeader';
 import CreateGroupDialog from '@/components/CreateGroupDialog';
 import JoinGroupForm from '@/components/JoinGroupForm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,13 +36,6 @@ interface GroupMember {
   profiles: {
     name: string;
     email: string;
-    first_name: string | null;
-    last_name: string | null;
-    phone: string | null;
-    profile_photo_url: string | null;
-    bio: string | null;
-    expertise_tags: string[] | null;
-    skills: string[] | null;
   };
 }
 
@@ -63,15 +57,17 @@ const Groups = () => {
     if (user) {
       fetchGroups();
     }
-  }, [user]);
+  }, [user, showAllGroups]);
 
   const fetchGroups = async () => {
     try {
-      const { data: groupsData, error } = await supabase
-        .from('group_members')
-        .select(`
-          role,
-          groups (
+      let groupsData: any[] = [];
+
+      if (isAdmin && showAllGroups) {
+        // Admin viewing all groups
+        const { data: allGroups, error: allGroupsError } = await supabase
+          .from('groups')
+          .select(`
             id,
             name,
             description,
@@ -79,30 +75,73 @@ const Groups = () => {
             created_at,
             created_by,
             updated_at
-          )
-        `)
-        .eq('user_id', user!.id);
+          `)
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (allGroupsError) throw allGroupsError;
 
-      // Get member counts for each group
-      const groupsWithCounts = await Promise.all(
-        (groupsData || []).map(async (item) => {
-          const group = item.groups as any;
-          const { count } = await supabase
-            .from('group_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('group_id', group.id);
+        // Get member counts and user's role in each group
+        groupsData = await Promise.all(
+          (allGroups || []).map(async (group) => {
+            const { count } = await supabase
+              .from('group_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('group_id', group.id);
 
-          return {
-            ...group,
-            member_role: item.role,
-            member_count: count || 0
-          };
-        })
-      );
+            // Check if user is a member of this group
+            const { data: membership } = await supabase
+              .from('group_members')
+              .select('role')
+              .eq('group_id', group.id)
+              .eq('user_id', user!.id)
+              .maybeSingle();
 
-      setGroups(groupsWithCounts);
+            return {
+              ...group,
+              member_role: membership?.role || null,
+              member_count: count || 0
+            };
+          })
+        );
+      } else {
+        // Regular user or admin viewing only their groups
+        const { data: userGroupsData, error } = await supabase
+          .from('group_members')
+          .select(`
+            role,
+            groups (
+              id,
+              name,
+              description,
+              invite_code,
+              created_at,
+              created_by,
+              updated_at
+            )
+          `)
+          .eq('user_id', user!.id);
+
+        if (error) throw error;
+
+        // Get member counts for each group
+        groupsData = await Promise.all(
+          (userGroupsData || []).map(async (item) => {
+            const group = item.groups as any;
+            const { count } = await supabase
+              .from('group_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('group_id', group.id);
+
+            return {
+              ...group,
+              member_role: item.role,
+              member_count: count || 0
+            };
+          })
+        );
+      }
+
+      setGroups(groupsData);
     } catch (error: any) {
       toast({
         title: "Error loading groups",
@@ -132,14 +171,7 @@ const Groups = () => {
             .from('profiles')
             .select(`
               name, 
-              email, 
-              first_name, 
-              last_name, 
-              phone, 
-              profile_photo_url, 
-              bio, 
-              expertise_tags, 
-              skills
+              email
             `)
             .eq('id', member.user_id)
             .maybeSingle();
@@ -148,14 +180,7 @@ const Groups = () => {
             ...member,
             profiles: profile || { 
               name: 'Unknown', 
-              email: 'Unknown',
-              first_name: null,
-              last_name: null,
-              phone: null,
-              profile_photo_url: null,
-              bio: null,
-              expertise_tags: null,
-              skills: null
+              email: 'Unknown'
             }
           };
         })
@@ -248,53 +273,78 @@ const Groups = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Groups</h1>
-            <p className="text-muted-foreground">
-              {isAdmin || isModerator ? 'Manage your groups, members, and invite codes' : 'View your groups and members'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {(isAdmin || isModerator) && <CreateGroupDialog onGroupCreated={fetchGroups} />}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Join Group
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Join a Group</DialogTitle>
-                  <DialogDescription>
-                    Enter an invite code to join an existing group
-                  </DialogDescription>
-                </DialogHeader>
-                <JoinGroupForm onSuccess={() => {
-                  fetchGroups();
-                }} />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <PageHeader
+          title="Groups"
+          subtitle={isAdmin || isModerator ? 'Manage your groups, members, and invite codes' : 'View your groups and members'}
+          actions={
+            <div className="flex gap-2">
+              {(isAdmin || isModerator) && <CreateGroupDialog onGroupCreated={fetchGroups} />}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Join Group
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Join a Group</DialogTitle>
+                    <DialogDescription>
+                      Enter an invite code to join an existing group
+                    </DialogDescription>
+                  </DialogHeader>
+                  <JoinGroupForm onSuccess={() => {
+                    fetchGroups();
+                  }} />
+                </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
+
+        {/* Admin Workspace Switch */}
+        {isAdmin && (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">Admin Workspace View</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {showAllGroups 
+                      ? "Viewing all groups in the system" 
+                      : "Viewing only groups you're a member of"
+                    }
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">My Groups Only</span>
+                  <Button
+                    variant={showAllGroups ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowAllGroups(!showAllGroups)}
+                  >
+                    {showAllGroups ? "All Groups" : "My Groups"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {groups.length === 0 ? (
           <Card>
@@ -315,7 +365,9 @@ const Groups = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Groups List */}
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Your Groups</h2>
+              <h2 className="text-xl font-semibold">
+                {isAdmin && showAllGroups ? "All Groups" : "Your Groups"}
+              </h2>
               {groups.map((group) => (
                 <Card 
                   key={group.id}
@@ -331,9 +383,15 @@ const Groups = () => {
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold text-lg">{group.name}</h3>
                       <div className="flex items-center gap-2">
-                        <Badge variant={group.member_role === 'admin' ? 'default' : 'secondary'}>
-                          {group.member_role}
-                        </Badge>
+                        {group.member_role ? (
+                          <Badge variant={group.member_role === 'admin' ? 'default' : 'secondary'}>
+                            {group.member_role}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-orange-600 border-orange-200">
+                            Not a Member
+                          </Badge>
+                        )}
                         {(isAdmin || isModerator) && group.member_role === 'admin' && (
                           <Dialog>
                             <DialogTrigger asChild>
@@ -460,9 +518,7 @@ const Groups = () => {
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {groupMembers.map((member) => {
-                              const displayName = member.profiles.first_name && member.profiles.last_name 
-                                ? `${member.profiles.first_name} ${member.profiles.last_name}`
-                                : member.profiles.name;
+                              const displayName = member.profiles.name;
                               
                               const initials = displayName
                                 .split(' ')
@@ -471,21 +527,11 @@ const Groups = () => {
                                 .toUpperCase()
                                 .slice(0, 2);
 
-                              const shortBio = member.profiles.bio 
-                                ? member.profiles.bio.length > 60 
-                                  ? `${member.profiles.bio.slice(0, 60)}...`
-                                  : member.profiles.bio
-                                : null;
-
                               return (
                                 <Card key={member.id} className="relative">
                                   <CardContent className="p-4">
                                     <div className="flex items-start gap-3">
                                       <Avatar className="h-12 w-12">
-                                        <AvatarImage 
-                                          src={member.profiles.profile_photo_url || undefined} 
-                                          alt={displayName}
-                                        />
                                         <AvatarFallback className="bg-primary/10 text-primary">
                                           {initials}
                                         </AvatarFallback>
@@ -504,50 +550,6 @@ const Groups = () => {
                                             <Mail className="h-3 w-3" />
                                             <span className="truncate">{member.profiles.email}</span>
                                           </div>
-                                          {member.profiles.phone && (
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                              <Phone className="h-3 w-3" />
-                                              <span>{member.profiles.phone}</span>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {shortBio && (
-                                          <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
-                                            {shortBio}
-                                          </p>
-                                        )}
-
-                                        {/* Expertise and Skills Tags */}
-                                        <div className="space-y-1">
-                                          {member.profiles.expertise_tags && member.profiles.expertise_tags.length > 0 && (
-                                            <div className="flex flex-wrap gap-1">
-                                              {member.profiles.expertise_tags.slice(0, 3).map((tag, index) => (
-                                                <Badge key={index} variant="outline" className="text-xs py-0 px-1.5 h-5">
-                                                  {tag}
-                                                </Badge>
-                                              ))}
-                                              {member.profiles.expertise_tags.length > 3 && (
-                                                <Badge variant="outline" className="text-xs py-0 px-1.5 h-5">
-                                                  +{member.profiles.expertise_tags.length - 3}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          )}
-                                          {member.profiles.skills && member.profiles.skills.length > 0 && (
-                                            <div className="flex flex-wrap gap-1">
-                                              {member.profiles.skills.slice(0, 2).map((skill, index) => (
-                                                <Badge key={index} variant="secondary" className="text-xs py-0 px-1.5 h-5">
-                                                  {skill}
-                                                </Badge>
-                                              ))}
-                                              {member.profiles.skills.length > 2 && (
-                                                <Badge variant="secondary" className="text-xs py-0 px-1.5 h-5">
-                                                  +{member.profiles.skills.length - 2}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          )}
                                         </div>
                                       </div>
                                     </div>
@@ -589,38 +591,38 @@ const Groups = () => {
             </div>
           </div>
         )}
-      </main>
 
-      {/* Remove Member Confirmation Dialog */}
-      <Dialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove Member</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove <strong>{memberToRemove?.profiles.name}</strong> from this group? 
-              They will lose access to all group content and will need to be re-invited to join again.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2">
-            <Button 
-              variant="destructive" 
-              onClick={removeMember} 
-              disabled={isRemovingMember}
-              className="flex-1"
-            >
-              {isRemovingMember ? "Removing..." : "Remove Member"}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setMemberToRemove(null)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Remove Member Confirmation Dialog */}
+        <Dialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Remove Member</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove <strong>{memberToRemove?.profiles.name}</strong> from this group? 
+                They will lose access to all group content and will need to be re-invited to join again.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2">
+              <Button 
+                variant="destructive" 
+                onClick={removeMember} 
+                disabled={isRemovingMember}
+                className="flex-1"
+              >
+                {isRemovingMember ? "Removing..." : "Remove Member"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setMemberToRemove(null)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Layout>
   );
 };
 

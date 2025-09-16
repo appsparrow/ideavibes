@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import DocumentManager from '@/components/DocumentManager';
+import IdeaPDFExport from '@/components/IdeaPDFExport';
 import WorkflowManager from '@/components/WorkflowManager';
 import IdeaEditor from '@/components/IdeaEditor';
 import CommentEditor from '@/components/CommentEditor';
@@ -358,7 +359,7 @@ const IdeaDetail = () => {
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center justify-between mb-6">
             <Button
               variant="ghost"
               size="sm"
@@ -367,6 +368,7 @@ const IdeaDetail = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Ideas
             </Button>
+            <IdeaPDFExport ideaId={id!} />
           </div>
 
           <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
